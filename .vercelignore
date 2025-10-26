@@ -1,10 +1,12 @@
 # Vercel Ignore File
-# Backend should be deployed separately to Railway
 
-backend/
 node_modules/
 .env
 .env.local
+.env.production
 *.log
 .git/
+.DS_Store
+backend/node_modules/
+frontend/node_modules/
 

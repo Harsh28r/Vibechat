@@ -8,8 +8,9 @@
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build:frontend": "npm run build --prefix frontend",
-    "start:backend": "npm start --prefix backend"
+    "build": "cd frontend && npm install && npm run build",
+    "vercel-build": "cd frontend && npm install && npm run build && cd ../backend && npm install",
+    "start": "node backend/server.js"
   },
   "repository": {
     "type": "git",
