@@ -1,0 +1,10 @@
+# Vercel Ignore File
+# Backend should be deployed separately to Railway
+
+backend/
+node_modules/
+.env
+.env.local
+*.log
+.git/
+
