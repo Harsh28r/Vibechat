@@ -5,7 +5,8 @@ import WelcomeScreen from './components/WelcomeScreen'
 import VideoChat from './components/VideoChat'
 import { SocketProvider } from './context/SocketContext'
 
-const SOCKET_URL = 'http://localhost:5000'
+// const SOCKET_URL = 'http://localhost:5000'
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL
 
 function App() {
   const [isStarted, setIsStarted] = useState(false)
@@ -40,10 +41,13 @@ function App() {
     console.log('🔌 Connecting to:', SOCKET_URL)
     // Initialize socket connection
     const newSocket = io(SOCKET_URL, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'], // Try websocket first
+      upgrade: true,
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 10
+      reconnectionAttempts: 10,
+      timeout: 20000,
+      withCredentials: false
     })
 
     newSocket.on('connect', () => {
