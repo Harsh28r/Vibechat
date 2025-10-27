@@ -105,7 +105,11 @@ io.on('connection', (socket) => {
           lastActive: Date.now(),
           country: userData?.country || 'ANY',
           gender: userData?.gender || 'other',
-          interests: userData?.interests || []
+          interests: userData?.interests || [],
+          preferences: {
+            gender: userData?.preferences?.gender || 'any',
+            country: userData?.preferences?.country || 'ANY'
+          }
         },
         { upsert: true, new: true }
       );

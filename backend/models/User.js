@@ -26,6 +26,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'Unknown'
   },
+  gender: {
+    type: String,
+    default: 'other'
+  },
+  interests: {
+    type: [String],
+    default: []
+  },
+  preferences: {
+    gender: {
+      type: String,
+      default: 'any'
+    },
+    country: {
+      type: String,
+      default: 'ANY'
+    }
+  },
   totalChats: {
     type: Number,
     default: 0
