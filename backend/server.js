@@ -6,10 +6,16 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import connectDB from './config/database.js';
 import MatchingQueue from './utils/MatchingQueue.js';
 import ChatSession from './models/ChatSession.js';
 import User from './models/User.js';
+import passport from './config/passport.js';
+import authRoutes from './routes/auth.js';
+import facebookRoutes from './routes/facebook.js';
+import googleRoutes from './routes/google.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,11 +40,29 @@ const io = new Server(httpServer, {
 
 // Middleware
 app.use(cors({
-  origin: '*', // Allow all origins in development
-  credentials: false
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true // Enable credentials for auth
 }));
 app.use(compression());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Session middleware (required for passport)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'vibechat-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -49,6 +73,11 @@ app.use('/api/', limiter);
 
 // Connect to MongoDB
 connectDB();
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/auth', facebookRoutes);
+app.use('/api/auth', googleRoutes);
 
 // Initialize matching queue
 const matchingQueue = new MatchingQueue();
