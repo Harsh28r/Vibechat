@@ -44,6 +44,16 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
+  firebaseUid: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  provider: {
+    type: String,
+    enum: ['local', 'google', 'facebook', 'firebase'],
+    default: 'local'
+  },
   
   // Socket & Chat Info
   socketId: {

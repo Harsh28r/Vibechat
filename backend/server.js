@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import geoip from 'geoip-lite';
 import connectDB from './config/database.js';
 import MatchingQueue from './utils/MatchingQueue.js';
 import ChatSession from './models/ChatSession.js';
@@ -16,6 +17,7 @@ import passport from './config/passport.js';
 import authRoutes from './routes/auth.js';
 import facebookRoutes from './routes/facebook.js';
 import googleRoutes from './routes/google.js';
+import firebaseRoutes from './routes/firebase.js';
 
 // Load environment variables
 dotenv.config();
@@ -78,9 +80,65 @@ connectDB();
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', facebookRoutes);
 app.use('/api/auth', googleRoutes);
+app.use('/api/auth', firebaseRoutes);
 
 // Initialize matching queue
 const matchingQueue = new MatchingQueue();
+
+// Auto-retry matching for waiting users every 1.5 seconds
+setInterval(async () => {
+  const waitingUsers = Array.from(matchingQueue.waitingUsers.entries());
+  
+  for (const [socketId, userData] of waitingUsers) {
+    // Skip if recently tried
+    if (Date.now() - userData.lastMatchAttempt < 1000) continue;
+    
+    const result = matchingQueue.findMatch(socketId, true);
+    
+    if (result.matched) {
+      const { user1, user2 } = result;
+      
+      console.log(`⚡ Auto-matched: ${user1} <-> ${user2}`);
+      
+      // Notify users
+      io.to(user1).emit('searching', { message: 'Found someone! Connecting...' });
+      io.to(user2).emit('searching', { message: 'Found someone! Connecting...' });
+      
+      // Connect immediately
+      setImmediate(async () => {
+        try {
+          await User.updateMany(
+            { socketId: { $in: [user1, user2] } },
+            { inChat: true, partnerId: user1 === socketId ? user2 : user1 }
+          );
+
+          const session = await ChatSession.create({
+            user1,
+            user2,
+            startTime: Date.now()
+          });
+
+          // Get partner countries
+          const user1Data = await User.findOne({ socketId: user1 });
+          const user2Data = await User.findOne({ socketId: user2 });
+
+          io.to(user1).emit('match-found', { 
+            partnerId: user2, 
+            sessionId: session._id,
+            partnerCountry: user2Data?.country || 'Unknown'
+          });
+          io.to(user2).emit('match-found', { 
+            partnerId: user1, 
+            sessionId: session._id,
+            partnerCountry: user1Data?.country || 'Unknown'
+          });
+        } catch (error) {
+          console.error('Error in auto-match:', error);
+        }
+      });
+    }
+  }
+}, 1500); // Check every 1.5 seconds for super fast matching
 
 // Track active connections
 let activeConnections = 0;
@@ -110,6 +168,12 @@ io.on('connection', (socket) => {
   activeConnections++;
   console.log(`🔌 New connection: ${socket.id} | Total: ${activeConnections}`);
 
+  // Detect country from IP
+  const clientIP = socket.handshake.address || socket.conn.remoteAddress || '127.0.0.1';
+  const geo = geoip.lookup(clientIP);
+  const detectedCountry = geo?.country || 'Unknown';
+  console.log(`🌍 IP: ${clientIP} | Country: ${detectedCountry}`);
+
   // Check max connections
   if (activeConnections > MAX_CONNECTIONS) {
     socket.emit('server-full', { message: 'Server is at capacity. Please try again later.' });
@@ -125,14 +189,14 @@ io.on('connection', (socket) => {
       console.log('Preferences:', userData);
       
       // Add to database
-      await User.findOneAndUpdate(
+      const user = await User.findOneAndUpdate(
         { socketId: socket.id },
         {
           socketId: socket.id,
           isOnline: true,
           inChat: false,
           lastActive: Date.now(),
-          country: userData?.country || 'ANY',
+          country: userData?.country || detectedCountry || 'Unknown',
           gender: userData?.gender || 'other',
           interests: userData?.interests || [],
           preferences: {
@@ -147,19 +211,19 @@ io.on('connection', (socket) => {
       const result = matchingQueue.addToQueue(socket.id, userData);
 
       if (result.matched) {
-        // Match found! Add a delay before connecting (2-3 seconds for better UX)
+        // Match found! Connect immediately for fast experience
         const { user1, user2 } = result;
         
         const stats = matchingQueue.getStats();
-        console.log(`⏳ Match pending: ${user1} <-> ${user2} (waiting 2s)`);
+        console.log(`⚡ Instant match: ${user1} <-> ${user2}`);
         console.log(`📊 Queue Stats - Waiting: ${stats.waitingUsers}, Active Chats: ${stats.activeChats}`);
         
-        // Notify users they're being matched
+        // Notify users they're being matched (no delay!)
         io.to(user1).emit('searching', { message: 'Found someone! Connecting...' });
         io.to(user2).emit('searching', { message: 'Found someone! Connecting...' });
         
-        // Wait 2 seconds before establishing connection
-        setTimeout(async () => {
+        // Connect immediately - no artificial delay!
+        setImmediate(async () => {
           try {
             // Update both users in database
             await User.updateMany(
@@ -174,9 +238,21 @@ io.on('connection', (socket) => {
               startTime: Date.now()
             });
 
-            // Notify both users
-            io.to(user1).emit('match-found', { partnerId: user2, sessionId: session._id });
-            io.to(user2).emit('match-found', { partnerId: user1, sessionId: session._id });
+            // Get partner countries
+            const user1Data = await User.findOne({ socketId: user1 });
+            const user2Data = await User.findOne({ socketId: user2 });
+
+            // Notify both users immediately
+            io.to(user1).emit('match-found', { 
+              partnerId: user2, 
+              sessionId: session._id,
+              partnerCountry: user2Data?.country || 'Unknown'
+            });
+            io.to(user2).emit('match-found', { 
+              partnerId: user1, 
+              sessionId: session._id,
+              partnerCountry: user1Data?.country || 'Unknown'
+            });
 
             console.log(`💑 Match created: ${user1} <-> ${user2}`);
           } catch (error) {
@@ -403,8 +479,20 @@ async function handleNewMatch(user1, user2) {
       startTime: Date.now()
     });
 
-    io.to(user1).emit('match-found', { partnerId: user2, sessionId: session._id });
-    io.to(user2).emit('match-found', { partnerId: user1, sessionId: session._id });
+    // Get partner countries
+    const user1Data = await User.findOne({ socketId: user1 });
+    const user2Data = await User.findOne({ socketId: user2 });
+
+    io.to(user1).emit('match-found', { 
+      partnerId: user2, 
+      sessionId: session._id,
+      partnerCountry: user2Data?.country || 'Unknown'
+    });
+    io.to(user2).emit('match-found', { 
+      partnerId: user1, 
+      sessionId: session._id,
+      partnerCountry: user1Data?.country || 'Unknown'
+    });
   } catch (error) {
     console.error('Error handling new match:', error);
   }
