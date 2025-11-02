@@ -104,12 +104,32 @@ setInterval(async () => {
       io.to(user1).emit('searching', { message: 'Found someone! Connecting...' });
       io.to(user2).emit('searching', { message: 'Found someone! Connecting...' });
       
-      // Connect immediately
+      // Get user data from queue (fast, no DB query!)
+      const user1QueueData = matchingQueue.waitingUsers.get(user1) || {};
+      const user2QueueData = matchingQueue.waitingUsers.get(user2) || {};
+      
+      // Notify both users IMMEDIATELY (no database delay!)
+      const tempSessionId = `temp-${Date.now()}-${Math.random()}`;
+      
+      io.to(user1).emit('match-found', { 
+        partnerId: user2, 
+        sessionId: tempSessionId,
+        partnerCountry: user2QueueData?.country || 'Unknown'
+      });
+      io.to(user2).emit('match-found', { 
+        partnerId: user1, 
+        sessionId: tempSessionId,
+        partnerCountry: user1QueueData?.country || 'Unknown'
+      });
+      
+      console.log(`💑 Auto-match: ${user1} <-> ${user2}`);
+
+      // Update database asynchronously (non-blocking)
       setImmediate(async () => {
         try {
           await User.updateMany(
             { socketId: { $in: [user1, user2] } },
-            { inChat: true, partnerId: user1 === socketId ? user2 : user1 }
+            { inChat: true, partnerId: user1 }
           );
 
           const session = await ChatSession.create({
@@ -118,22 +138,9 @@ setInterval(async () => {
             startTime: Date.now()
           });
 
-          // Get partner countries
-          const user1Data = await User.findOne({ socketId: user1 });
-          const user2Data = await User.findOne({ socketId: user2 });
-
-          io.to(user1).emit('match-found', { 
-            partnerId: user2, 
-            sessionId: session._id,
-            partnerCountry: user2Data?.country || 'Unknown'
-          });
-          io.to(user2).emit('match-found', { 
-            partnerId: user1, 
-            sessionId: session._id,
-            partnerCountry: user1Data?.country || 'Unknown'
-          });
+          console.log(`💾 Auto-match session saved: ${session._id}`);
         } catch (error) {
-          console.error('Error in auto-match:', error);
+          console.error('Error saving auto-match to database:', error);
         }
       });
     }
@@ -188,27 +195,35 @@ io.on('connection', (socket) => {
       console.log(`🔍 ${socket.id} started searching`);
       console.log('Preferences:', userData);
       
-      // Add to database
-      const user = await User.findOneAndUpdate(
+      // Prepare user data for matching queue (use detected country from socket)
+      const userDataForQueue = {
+        ...userData,
+        country: userData?.country || detectedCountry || 'Unknown',
+        gender: userData?.gender || 'other',
+        preferences: {
+          gender: userData?.preferences?.gender || 'any',
+          country: userData?.preferences?.country || 'ANY'
+        }
+      };
+
+      // Add to matching queue FIRST (fast, in-memory)
+      const result = matchingQueue.addToQueue(socket.id, userDataForQueue);
+      
+      // Update database asynchronously (non-blocking)
+      User.findOneAndUpdate(
         { socketId: socket.id },
         {
           socketId: socket.id,
           isOnline: true,
           inChat: false,
           lastActive: Date.now(),
-          country: userData?.country || detectedCountry || 'Unknown',
-          gender: userData?.gender || 'other',
+          country: userDataForQueue.country,
+          gender: userDataForQueue.gender,
           interests: userData?.interests || [],
-          preferences: {
-            gender: userData?.preferences?.gender || 'any',
-            country: userData?.preferences?.country || 'ANY'
-          }
+          preferences: userDataForQueue.preferences
         },
         { upsert: true, new: true }
-      );
-
-      // Add to matching queue
-      const result = matchingQueue.addToQueue(socket.id, userData);
+      ).catch(err => console.error('Database update error:', err));
 
       if (result.matched) {
         // Match found! Connect immediately for fast experience
@@ -222,13 +237,33 @@ io.on('connection', (socket) => {
         io.to(user1).emit('searching', { message: 'Found someone! Connecting...' });
         io.to(user2).emit('searching', { message: 'Found someone! Connecting...' });
         
-        // Connect immediately - no artificial delay!
+        // Get user data from queue (fast, no DB query needed!)
+        const user1Data = matchingQueue.waitingUsers.get(user1) || matchingQueue.activeChats.get(user1) || {};
+        const user2Data = matchingQueue.waitingUsers.get(user2) || matchingQueue.activeChats.get(user2) || {};
+        
+        // Notify both users IMMEDIATELY (no database delay!)
+        const tempSessionId = `temp-${Date.now()}-${Math.random()}`;
+        
+        io.to(user1).emit('match-found', { 
+          partnerId: user2, 
+          sessionId: tempSessionId,
+          partnerCountry: user2Data?.country || 'Unknown'
+        });
+        io.to(user2).emit('match-found', { 
+          partnerId: user1, 
+          sessionId: tempSessionId,
+          partnerCountry: user1Data?.country || 'Unknown'
+        });
+
+        console.log(`💑 Match created: ${user1} <-> ${user2}`);
+        
+        // Update database asynchronously (non-blocking, happens after notification)
         setImmediate(async () => {
           try {
             // Update both users in database
             await User.updateMany(
               { socketId: { $in: [user1, user2] } },
-              { inChat: true, partnerId: user1 === socket.id ? user2 : user1 }
+              { inChat: true, partnerId: user1 }
             );
 
             // Create chat session
@@ -238,36 +273,28 @@ io.on('connection', (socket) => {
               startTime: Date.now()
             });
 
-            // Get partner countries
-            const user1Data = await User.findOne({ socketId: user1 });
-            const user2Data = await User.findOne({ socketId: user2 });
-
-            // Notify both users immediately
-            io.to(user1).emit('match-found', { 
-              partnerId: user2, 
-              sessionId: session._id,
-              partnerCountry: user2Data?.country || 'Unknown'
-            });
-            io.to(user2).emit('match-found', { 
-              partnerId: user1, 
-              sessionId: session._id,
-              partnerCountry: user1Data?.country || 'Unknown'
-            });
-
-            console.log(`💑 Match created: ${user1} <-> ${user2}`);
+            // Update session ID if needed (optional - temp ID works fine)
+            console.log(`💾 Session saved to DB: ${session._id}`);
           } catch (error) {
-            console.error('Error creating match:', error);
+            console.error('Error saving match to database:', error);
+            // Don't fail the match - DB is just for logging
           }
         });
       } else {
         const stats = matchingQueue.getStats();
         console.log(`⏰ ${socket.id} waiting in queue. Total waiting: ${stats.waitingUsers}`);
         console.log(`📊 Current waiting users:`, Array.from(matchingQueue.waitingUsers.keys()));
+        
+        if (stats.waitingUsers === 1) {
+          console.log(`ℹ️ Only 1 user in queue - need another user to match`);
+        }
+        
         socket.emit('searching', { message: 'Searching for someone...' });
       }
     } catch (error) {
-      console.error('Error in start-search:', error);
-      socket.emit('error', { message: 'Failed to start search' });
+      console.error('❌ Error in start-search:', error);
+      console.error('❌ Error details:', error.stack);
+      socket.emit('error', { message: 'Failed to start search: ' + error.message });
     }
   });
 
