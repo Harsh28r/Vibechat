@@ -62,22 +62,26 @@ function MainApp() {
 
     newSocket.on('connect', () => {
       console.log('✅ Connected to server:', newSocket.id)
+      console.log('🔌 Socket URL:', SOCKET_URL)
+      console.log('🌐 Connection state:', newSocket.connected ? 'CONNECTED' : 'DISCONNECTED')
       setIsConnected(true)
     })
-
-    newSocket.on('disconnect', (reason) => {
-      console.log('❌ Disconnected:', reason)
-      setIsConnected(false)
-    })
-
+    
+    // Listen for connection state changes
     newSocket.on('connect_error', (error) => {
       console.error('❌ Connection error:', error)
       console.error('🔌 Trying to connect to:', SOCKET_URL)
+      console.error('🔌 Socket connected?', newSocket.connected)
       setIsConnected(false)
       // Show alert if connection fails in production
       if (SOCKET_URL.includes('localhost')) {
         alert('⚠️ Backend URL not configured! Please set VITE_SOCKET_URL environment variable.')
       }
+    })
+
+    newSocket.on('disconnect', (reason) => {
+      console.log('❌ Disconnected:', reason)
+      setIsConnected(false)
     })
 
     newSocket.on('server-full', ({ message }) => {
