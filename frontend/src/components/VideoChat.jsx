@@ -201,11 +201,13 @@ function VideoChat({ preferences }) {
     console.log('🎧 Setting up socket event listeners')
 
     socket.on('searching', ({ message }) => {
-      console.log('🔍', message)
+      console.log('🔍 Server says:', message)
       if (message.includes('Found someone') || message.includes('Connecting')) {
         setStatus('connecting')
+        console.log('✨ Status changed to: connecting')
       } else {
         setStatus('searching')
+        console.log('⏳ Status changed to: searching')
       }
     })
 
