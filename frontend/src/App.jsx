@@ -71,8 +71,13 @@ function MainApp() {
     })
 
     newSocket.on('connect_error', (error) => {
-      console.error('Connection error:', error)
+      console.error('❌ Connection error:', error)
+      console.error('🔌 Trying to connect to:', SOCKET_URL)
       setIsConnected(false)
+      // Show alert if connection fails in production
+      if (SOCKET_URL.includes('localhost')) {
+        alert('⚠️ Backend URL not configured! Please set VITE_SOCKET_URL environment variable.')
+      }
     })
 
     newSocket.on('server-full', ({ message }) => {
