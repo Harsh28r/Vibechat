@@ -258,10 +258,11 @@ io.on('connection', (socket) => {
           } catch (error) {
             console.error('Error creating match:', error);
           }
-        }, 2000); // 2 second delay
+        });
       } else {
         const stats = matchingQueue.getStats();
         console.log(`⏰ ${socket.id} waiting in queue. Total waiting: ${stats.waitingUsers}`);
+        console.log(`📊 Current waiting users:`, Array.from(matchingQueue.waitingUsers.keys()));
         socket.emit('searching', { message: 'Searching for someone...' });
       }
     } catch (error) {
