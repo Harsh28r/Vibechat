@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Facebook, Mail, Lock, User, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Facebook, Mail, Lock, User, Eye, EyeOff, UserPlus, X } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import './Login.css';
 
 function Signup({ onSwitchToLogin, onClose }) {
-  const { signup, loginAsGuest } = useAuth();
+  const { signup, loginAsGuest, loginWithGoogle, loginWithFacebook } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -16,8 +16,6 @@ function Signup({ onSwitchToLogin, onClose }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const API_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
   const handleChange = (e) => {
     setFormData({
@@ -77,19 +75,41 @@ function Signup({ onSwitchToLogin, onClose }) {
     setLoading(false);
   };
 
-  const handleFacebookLogin = () => {
-    window.location.href = `${API_URL}/api/auth/facebook`;
+  const handleFacebookLogin = async () => {
+    setLoading(true);
+    setError('');
+    const result = await loginWithFacebook();
+    if (result.success) {
+      console.log('✅ Facebook login successful!');
+      onClose();
+    } else {
+      setError(result.message);
+    }
+    setLoading(false);
   };
 
-  const handleGoogleLogin = () => {
-    window.location.href = `${API_URL}/api/auth/google`;
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    const result = await loginWithGoogle();
+    if (result.success) {
+      console.log('✅ Google login successful!');
+      onClose();
+    } else {
+      setError(result.message);
+    }
+    setLoading(false);
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
+    <div className="auth-container" onClick={onClose}>
+      <div className="auth-card" onClick={(e) => e.stopPropagation()}>
+        <button className="auth-close-btn" onClick={onClose}>
+          <X size={20} />
+        </button>
+        
         <div className="auth-header">
-          <UserPlus size={48} className="auth-icon" />
+          <UserPlus size={40} className="auth-icon" />
           <h2>Create Account</h2>
           <p>Join VibeChat today!</p>
         </div>
@@ -102,7 +122,7 @@ function Signup({ onSwitchToLogin, onClose }) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <User size={20} />
+            <User size={18} />
             <input
               type="text"
               name="username"
@@ -116,7 +136,7 @@ function Signup({ onSwitchToLogin, onClose }) {
           </div>
 
           <div className="form-group">
-            <User size={20} />
+            <User size={18} />
             <input
               type="text"
               name="displayName"
@@ -127,7 +147,7 @@ function Signup({ onSwitchToLogin, onClose }) {
           </div>
 
           <div className="form-group">
-            <Mail size={20} />
+            <Mail size={18} />
             <input
               type="email"
               name="email"
@@ -139,7 +159,7 @@ function Signup({ onSwitchToLogin, onClose }) {
           </div>
 
           <div className="form-group">
-            <Lock size={20} />
+            <Lock size={18} />
             <input
               type={showPassword ? 'text' : 'password'}
               name="password"
@@ -154,12 +174,12 @@ function Signup({ onSwitchToLogin, onClose }) {
               className="password-toggle"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
 
           <div className="form-group">
-            <Lock size={20} />
+            <Lock size={18} />
             <input
               type={showPassword ? 'text' : 'password'}
               name="confirmPassword"
@@ -176,22 +196,26 @@ function Signup({ onSwitchToLogin, onClose }) {
         </form>
 
         <div className="auth-divider">
-          <span>or</span>
+          <span>or sign up with</span>
         </div>
 
-        <button className="auth-btn facebook" onClick={handleFacebookLogin}>
-          <Facebook size={20} />
-          Sign up with Facebook
-        </button>
+        <div className="social-buttons">
+          <button className="auth-btn google" onClick={handleGoogleLogin} disabled={loading}>
+            <FcGoogle size={20} />
+            Sign up with Google
+          </button>
 
-        <button className="auth-btn google" onClick={handleGoogleLogin}>
-          <FcGoogle size={20} />
-          Sign up with Google
-        </button>
+          <button className="auth-btn facebook" onClick={handleFacebookLogin} disabled={loading}>
+            <Facebook size={20} />
+            Sign up with Facebook
+          </button>
+        </div>
 
-        <button className="auth-btn guest" onClick={handleGuestLogin} disabled={loading}>
-          Continue as Guest
-        </button>
+        <div className="guest-section">
+          <button className="auth-btn guest" onClick={handleGuestLogin} disabled={loading}>
+            Continue as Guest
+          </button>
+        </div>
 
         <div className="auth-footer">
           Already have an account?{' '}

@@ -1,5 +1,13 @@
 import { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import { 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  updateProfile as firebaseUpdateProfile
+} from 'firebase/auth';
+import { auth, googleProvider, facebookProvider } from '../config/firebase';
 
 const AuthContext = createContext();
 
@@ -13,121 +21,162 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
-
-  // Configure axios defaults
-  axios.defaults.baseURL = API_URL;
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  }
-
-  // Load user on mount
+  // Listen to Firebase auth state changes
   useEffect(() => {
-    if (token) {
-      loadUser();
-    } else {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in
+        const userData = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          username: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
+          avatar: firebaseUser.photoURL
+        };
+        
+        setUser(userData);
+        
+        // Store Firebase ID token for backend authentication
+        try {
+          const idToken = await firebaseUser.getIdToken();
+          localStorage.setItem('firebaseToken', idToken);
+        } catch (error) {
+          console.error('Error getting Firebase token:', error);
+        }
+      } else {
+        // User is signed out
+        setUser(null);
+        localStorage.removeItem('firebaseToken');
+      }
       setLoading(false);
-    }
-  }, [token]);
+    });
 
-  const loadUser = async () => {
-    try {
-      const res = await axios.get('/api/auth/me');
-      setUser(res.data.user);
-    } catch (error) {
-      console.error('Error loading user:', error);
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  };
+    return unsubscribe; // Cleanup subscription
+  }, []);
 
+  // Email/Password Signup
   const signup = async (userData) => {
     try {
-      const res = await axios.post('/api/auth/signup', userData);
-      const { token, user } = res.data;
+      const { username, email, password } = userData;
+      const result = await createUserWithEmailAndPassword(auth, email, password);
       
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Update profile with username
+      await firebaseUpdateProfile(result.user, {
+        displayName: username
+      });
       
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Signup failed'
+      console.error('Signup error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Signup failed' 
       };
     }
   };
 
+  // Email/Password Login
   const login = async (credentials) => {
     try {
-      const res = await axios.post('/api/auth/login', credentials);
-      const { token, user } = res.data;
-      
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
+      const { email, password } = credentials;
+      await signInWithEmailAndPassword(auth, email, password);
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Login failed'
+      console.error('Login error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Login failed' 
       };
     }
   };
 
-  const loginAsGuest = async () => {
+  // Google Login
+  const loginWithGoogle = async () => {
     try {
-      const res = await axios.post('/api/auth/guest');
-      const { token, user } = res.data;
-      
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
+      await signInWithPopup(auth, googleProvider);
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to create guest account'
+      console.error('Google login error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Google login failed' 
       };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
+  // Facebook Login
+  const loginWithFacebook = async () => {
+    try {
+      await signInWithPopup(auth, facebookProvider);
+      return { success: true };
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Facebook login failed' 
+      };
+    }
   };
 
+  // Guest Login (keep for backward compatibility)
+  const loginAsGuest = () => {
+    // Set a guest user
+    setUser({
+      uid: 'guest-' + Date.now(),
+      username: 'Guest',
+      displayName: 'Guest User',
+      isGuest: true
+    });
+    return { success: true };
+  };
+
+  // Logout
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  // Update Profile
   const updateProfile = async (profileData) => {
     try {
-      const res = await axios.put('/api/auth/profile', profileData);
-      setUser(res.data.user);
-      return { success: true };
+      if (auth.currentUser) {
+        await firebaseUpdateProfile(auth.currentUser, {
+          displayName: profileData.displayName || profileData.username,
+          photoURL: profileData.avatar
+        });
+        
+        // Update local user state
+        setUser(prev => ({
+          ...prev,
+          ...profileData
+        }));
+        
+        return { success: true };
+      }
+      return { success: false, message: 'No user logged in' };
     } catch (error) {
+      console.error('Profile update error:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Update failed'
+        message: error.message || 'Update failed'
       };
     }
   };
 
   const value = {
     user,
-    token,
+    token: user?.uid, // Use Firebase UID as token
     loading,
     signup,
     login,
+    loginWithGoogle,
+    loginWithFacebook,
     loginAsGuest,
     logout,
     updateProfile,
@@ -138,4 +187,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export default AuthContext;
-

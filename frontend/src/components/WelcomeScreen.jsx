@@ -10,6 +10,17 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
   
   return (
     <div className="welcome-screen">
+      {/* Animated Video Background */}
+      <div className="video-background">
+        <div className="video-overlay"></div>
+        <div className="animated-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+        </div>
+      </div>
+
       {/* Top Bar */}
       <div className="top-bar">
         {/* Dark Mode Toggle */}
@@ -17,9 +28,9 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
           {darkMode ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        {/* Auth Buttons */}
-        <div className="auth-buttons">
-          {isAuthenticated ? (
+        {/* Auth Buttons - Small for logged in users */}
+        {isAuthenticated && (
+          <div className="auth-buttons">
             <div className="user-info">
               {user?.avatar && (
                 <img src={user.avatar} alt="Avatar" className="user-avatar" />
@@ -29,52 +40,99 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
                 <LogOut size={18} />
               </button>
             </div>
-          ) : (
-            <>
-              <button className="auth-btn-small login" onClick={onShowLogin}>
-                <LogIn size={18} />
-                Login
-              </button>
-              <button className="auth-btn-small signup" onClick={onShowSignup}>
-                <UserPlus size={18} />
-                Sign Up
-              </button>
-            </>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      <div className="welcome-content fade-in">
+      <div className="welcome-container">
+        {/* Left Side - Video Preview */}
+        <div className="video-preview-section">
+          <div className="video-preview-box">
+            {/* Background Video - Using animated gradient for now */}
+            {/* To add your own video: Put video.mp4 in frontend/public/ folder and uncomment below */}
+            {/* <video className="preview-video" autoPlay loop muted playsInline>
+              <source src="/video.mp4" type="video/mp4" />
+            </video> */}
+            
+            {/* Animated Background Fallback */}
+            <div className="video-fallback"></div>
+            
+            <div className="preview-overlay">
+              <div className="live-badge-top">
+                <span className="live-dot"></span>
+                <span>LIVE NOW</span>
+              </div>
+              
+              <div className="preview-content">
+                <div className="preview-icon">
+                  <Video size={50} />
+                </div>
+                <h2>See Who's Online</h2>
+                <p>Thousands of people ready to chat</p>
+                <div className="video-stats">
+                  <div className="stat-pill">
+                    <Users size={20} />
+                    <span>5K+ Online</span>
+                  </div>
+                  <div className="stat-pill">
+                    <Zap size={20} />
+                    <span>Instant Match</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Welcome Form */}
+        <div className="welcome-content fade-in">
+
         <div className="logo">
           <div className="logo-icon-wrapper">
-            <Video size={48} className="logo-icon" />
-            <Sparkles size={24} className="sparkle-icon" />
+            <div className="logo-circle">
+              <Video size={32} className="logo-icon" />
+            </div>
+            <Sparkles size={16} className="sparkle-icon" />
           </div>
           <div className="brand-name">
             <h1>VibeChat</h1>
-            <span className="brand-subtitle">Connect. Vibe. Chat.</span>
+            <span className="brand-subtitle">🌍 Connect instantly. Chat globally. 🚀</span>
           </div>
         </div>
         
-        <p className="tagline">
-          Meet amazing people from around the world through instant video connections
-        </p>
+        <div className="tagline-wrapper">
+          <p className="tagline">
+            <span className="tagline-item">🌎 Meet new people worldwide</span>
+            <span className="tagline-divider">•</span>
+            <span className="tagline-item">⚡ Instant connections</span>
+            <span className="tagline-divider">•</span>
+            <span className="tagline-item">🎉 100% Free</span>
+          </p>
+        </div>
 
-        <div className="features">
-          <div className="feature">
-            <Users size={32} />
-            <h3>Random Matching</h3>
-            <p>Instant connection with people worldwide</p>
+        <div className="stats-banner">
+          <div className="stat-item">
+            <Users size={20} className="stat-icon" />
+            <div className="stat-content">
+              <span className="stat-number">5K+</span>
+              <span className="stat-label">Online Now</span>
+            </div>
           </div>
-          <div className="feature">
-            <Zap size={32} />
-            <h3>Lightning Fast</h3>
-            <p>WebRTC powered real-time communication</p>
+          <div className="stat-divider"></div>
+          <div className="stat-item">
+            <Zap size={20} className="stat-icon" />
+            <div className="stat-content">
+              <span className="stat-number">&lt;3s</span>
+              <span className="stat-label">Avg Match Time</span>
+            </div>
           </div>
-          <div className="feature">
-            <Shield size={32} />
-            <h3>Safe & Secure</h3>
-            <p>Your privacy is our priority</p>
+          <div className="stat-divider"></div>
+          <div className="stat-item">
+            <Shield size={20} className="stat-icon" />
+            <div className="stat-content">
+              <span className="stat-number">100%</span>
+              <span className="stat-label">Secure</span>
+            </div>
           </div>
         </div>
 
@@ -82,7 +140,7 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
           className="preferences-btn"
           onClick={() => setShowPreferences(true)}
         >
-          <Settings size={20} />
+          <Settings size={16} />
           Set Preferences
         </button>
 
@@ -91,7 +149,7 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
           onClick={onStart}
           disabled={!isConnected}
         >
-          {isConnected ? 'Start Chatting' : 'Connecting...'}
+          {isConnected ? '🎥 Start Video Chat' : 'Connecting...'}
         </button>
 
         {/* Connection Status - Only show for authenticated users */}
@@ -111,13 +169,6 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
           </div>
         )}
 
-        {/* Guest Notice - Show for non-authenticated users */}
-        {!isAuthenticated && isConnected && (
-          <div className="guest-notice">
-            <span className="info-icon">ℹ️</span>
-            <span>Login or sign up to save your preferences and chat history!</span>
-          </div>
-        )}
 
         {/* Regular connection status for guests */}
         {!isAuthenticated && (
@@ -128,9 +179,9 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
         )}
 
         <div className="disclaimer">
-          <p>✨ By clicking "Start Chatting", you agree to be awesome and respectful.</p>
-          <p>Let's create positive vibes together! 🌟</p>
+          <p>📹 Camera required • Be respectful • Have fun! 🌟</p>
         </div>
+      </div>
       </div>
 
       <Preferences

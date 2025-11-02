@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { Send } from 'lucide-react'
+import { Send, X, MessageCircle } from 'lucide-react'
 import './ChatBox.css'
 
 function ChatBox({ messages, onSendMessage, onTyping, partnerTyping, isConnected }) {
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
 
@@ -58,16 +59,41 @@ function ChatBox({ messages, onSendMessage, onTyping, partnerTyping, isConnected
   }
 
   return (
-    <div className="chat-box">
-      <div className="chat-header">
-        <h3>Chat</h3>
-        {isConnected && (
-          <div className="chat-status">
-            <div className="status-dot"></div>
-            <span>Online</span>
+    <>
+      {/* Floating toggle button when minimized */}
+      {isMinimized && (
+        <button 
+          className="chat-toggle-btn" 
+          onClick={() => setIsMinimized(false)}
+          title="Open Chat"
+        >
+          <MessageCircle size={24} />
+          {messages.length > 0 && (
+            <span className="chat-badge">{messages.length}</span>
+          )}
+        </button>
+      )}
+      
+      {/* Chat box */}
+      <div className={`chat-box ${isMinimized ? 'minimized' : ''}`}>
+        <div className="chat-header">
+          <h3>Chat</h3>
+          <div className="chat-header-actions">
+            {isConnected && (
+              <div className="chat-status">
+                <div className="status-dot"></div>
+                <span>Online</span>
+              </div>
+            )}
+            <button 
+              className="minimize-btn" 
+              onClick={() => setIsMinimized(true)}
+              title="Minimize Chat"
+            >
+              <X size={20} />
+            </button>
           </div>
-        )}
-      </div>
+        </div>
 
       <div className="messages-container">
         {messages.length === 0 && (
@@ -119,7 +145,8 @@ function ChatBox({ messages, onSendMessage, onTyping, partnerTyping, isConnected
           <Send size={20} />
         </button>
       </form>
-    </div>
+      </div>
+    </>
   )
 }
 

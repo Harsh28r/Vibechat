@@ -10,20 +10,41 @@ const INTERESTS = [
 ];
 
 const COUNTRIES = [
-  { code: 'ANY', name: '🌍 Any Country' },
+  { code: 'ANY', name: '🌍 Any Country (Worldwide)' },
   { code: 'US', name: '🇺🇸 United States' },
-  { code: 'UK', name: '🇬🇧 United Kingdom' },
-  { code: 'CA', name: '🇨🇦 Canada' },
   { code: 'IN', name: '🇮🇳 India' },
-  { code: 'PK', name: '🇵🇰 Pakistan' },
+  { code: 'GB', name: '🇬🇧 United Kingdom' },
+  { code: 'CA', name: '🇨🇦 Canada' },
   { code: 'AU', name: '🇦🇺 Australia' },
   { code: 'DE', name: '🇩🇪 Germany' },
   { code: 'FR', name: '🇫🇷 France' },
   { code: 'ES', name: '🇪🇸 Spain' },
+  { code: 'IT', name: '🇮🇹 Italy' },
+  { code: 'NL', name: '🇳🇱 Netherlands' },
   { code: 'BR', name: '🇧🇷 Brazil' },
+  { code: 'MX', name: '🇲🇽 Mexico' },
+  { code: 'AR', name: '🇦🇷 Argentina' },
+  { code: 'PK', name: '🇵🇰 Pakistan' },
+  { code: 'BD', name: '🇧🇩 Bangladesh' },
   { code: 'JP', name: '🇯🇵 Japan' },
   { code: 'KR', name: '🇰🇷 South Korea' },
-  { code: 'MX', name: '🇲🇽 Mexico' }
+  { code: 'CN', name: '🇨🇳 China' },
+  { code: 'TH', name: '🇹🇭 Thailand' },
+  { code: 'VN', name: '🇻🇳 Vietnam' },
+  { code: 'PH', name: '🇵🇭 Philippines' },
+  { code: 'ID', name: '🇮🇩 Indonesia' },
+  { code: 'MY', name: '🇲🇾 Malaysia' },
+  { code: 'SG', name: '🇸🇬 Singapore' },
+  { code: 'RU', name: '🇷🇺 Russia' },
+  { code: 'UA', name: '🇺🇦 Ukraine' },
+  { code: 'PL', name: '🇵🇱 Poland' },
+  { code: 'TR', name: '🇹🇷 Turkey' },
+  { code: 'SA', name: '🇸🇦 Saudi Arabia' },
+  { code: 'AE', name: '🇦🇪 UAE' },
+  { code: 'EG', name: '🇪🇬 Egypt' },
+  { code: 'ZA', name: '🇿🇦 South Africa' },
+  { code: 'NG', name: '🇳🇬 Nigeria' },
+  { code: 'KE', name: '🇰🇪 Kenya' }
 ];
 
 const GENDERS = [
@@ -107,8 +128,11 @@ function Preferences({ isOpen, onClose, preferences, onSave }) {
           <div className="preference-section">
             <div className="section-title">
               <MapPin size={20} />
-              <h3>Country</h3>
+              <h3>Match People From</h3>
             </div>
+            <p className="section-description">
+              Choose a specific country or chat with anyone worldwide!
+            </p>
             <select
               className="country-select"
               value={localPreferences.country}

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Facebook, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Facebook, Mail, Lock, User, Eye, EyeOff, X } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import './Login.css';
 
 function Login({ onSwitchToSignup, onClose }) {
-  const { login, loginAsGuest } = useAuth();
+  const { login, loginAsGuest, loginWithGoogle, loginWithFacebook } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -13,8 +13,6 @@ function Login({ onSwitchToSignup, onClose }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const API_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
   const handleChange = (e) => {
     setFormData({
@@ -55,19 +53,41 @@ function Login({ onSwitchToSignup, onClose }) {
     setLoading(false);
   };
 
-  const handleFacebookLogin = () => {
-    window.location.href = `${API_URL}/api/auth/facebook`;
+  const handleFacebookLogin = async () => {
+    setLoading(true);
+    setError('');
+    const result = await loginWithFacebook();
+    if (result.success) {
+      console.log('✅ Facebook login successful!');
+      onClose();
+    } else {
+      setError(result.message);
+    }
+    setLoading(false);
   };
 
-  const handleGoogleLogin = () => {
-    window.location.href = `${API_URL}/api/auth/google`;
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    const result = await loginWithGoogle();
+    if (result.success) {
+      console.log('✅ Google login successful!');
+      onClose();
+    } else {
+      setError(result.message);
+    }
+    setLoading(false);
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
+    <div className="auth-container" onClick={onClose}>
+      <div className="auth-card" onClick={(e) => e.stopPropagation()}>
+        <button className="auth-close-btn" onClick={onClose}>
+          <X size={20} />
+        </button>
+        
         <div className="auth-header">
-          <User size={48} className="auth-icon" />
+          <User size={40} className="auth-icon" />
           <h2>Welcome Back!</h2>
           <p>Login to continue chatting</p>
         </div>
@@ -80,7 +100,7 @@ function Login({ onSwitchToSignup, onClose }) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <Mail size={20} />
+            <Mail size={18} />
             <input
               type="email"
               name="email"
@@ -92,7 +112,7 @@ function Login({ onSwitchToSignup, onClose }) {
           </div>
 
           <div className="form-group">
-            <Lock size={20} />
+            <Lock size={18} />
             <input
               type={showPassword ? 'text' : 'password'}
               name="password"
@@ -106,7 +126,7 @@ function Login({ onSwitchToSignup, onClose }) {
               className="password-toggle"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
 
@@ -116,22 +136,26 @@ function Login({ onSwitchToSignup, onClose }) {
         </form>
 
         <div className="auth-divider">
-          <span>or</span>
+          <span>or continue with</span>
         </div>
 
-        <button className="auth-btn facebook" onClick={handleFacebookLogin}>
-          <Facebook size={20} />
-          Continue with Facebook
-        </button>
+        <div className="social-buttons">
+          <button className="auth-btn google" onClick={handleGoogleLogin} disabled={loading}>
+            <FcGoogle size={20} />
+            Continue with Google
+          </button>
 
-        <button className="auth-btn google" onClick={handleGoogleLogin}>
-          <FcGoogle size={20} />
-          Continue with Google
-        </button>
+          <button className="auth-btn facebook" onClick={handleFacebookLogin} disabled={loading}>
+            <Facebook size={20} />
+            Continue with Facebook
+          </button>
+        </div>
 
-        <button className="auth-btn guest" onClick={handleGuestLogin} disabled={loading}>
-          Continue as Guest
-        </button>
+        <div className="guest-section">
+          <button className="auth-btn guest" onClick={handleGuestLogin} disabled={loading}>
+            Continue as Guest
+          </button>
+        </div>
 
         <div className="auth-footer">
           Don't have an account?{' '}
