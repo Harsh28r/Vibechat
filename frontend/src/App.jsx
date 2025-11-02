@@ -47,17 +47,24 @@ function MainApp() {
   // Initialize socket connection (only once, regardless of auth)
   useEffect(() => {
     console.log('🔌 Connecting to:', SOCKET_URL)
+    
+    // For Render.com free tier, increase timeout for cold starts
+    const isRender = SOCKET_URL.includes('render.com')
+    const connectionTimeout = isRender ? 30000 : 20000 // 30s for Render, 20s for others
+    
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'], // Try polling first for better cold start handling
       upgrade: true,
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
-      timeout: 20000,
+      reconnectionDelay: isRender ? 2000 : 1000, // Wait longer for Render
+      reconnectionAttempts: 15, // More attempts for Render
+      timeout: connectionTimeout,
       withCredentials: true,
       auth: {
         token: localStorage.getItem('token')
-      }
+      },
+      // Add forceNew to handle reconnections better
+      forceNew: false
     })
 
     newSocket.on('connect', () => {
@@ -69,14 +76,36 @@ function MainApp() {
     
     // Listen for connection state changes
     newSocket.on('connect_error', (error) => {
-      console.error('❌ Connection error:', error)
+      console.error('❌ Connection error:', error.message)
       console.error('🔌 Trying to connect to:', SOCKET_URL)
       console.error('🔌 Socket connected?', newSocket.connected)
       setIsConnected(false)
-      // Show alert if connection fails in production
-      if (SOCKET_URL.includes('localhost')) {
+      
+      // Don't spam alerts for Render cold starts
+      if (error.message.includes('timeout') && SOCKET_URL.includes('render.com')) {
+        console.log('⏳ Render.com cold start detected - retrying...')
+      } else if (SOCKET_URL.includes('localhost')) {
         alert('⚠️ Backend URL not configured! Please set VITE_SOCKET_URL environment variable.')
       }
+    })
+    
+    // Handle successful reconnection
+    newSocket.on('reconnect', (attemptNumber) => {
+      console.log(`✅ Reconnected after ${attemptNumber} attempts`)
+      setIsConnected(true)
+    })
+    
+    newSocket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`🔄 Reconnection attempt ${attemptNumber}...`)
+    })
+    
+    newSocket.on('reconnect_error', (error) => {
+      console.error('❌ Reconnection error:', error.message)
+    })
+    
+    newSocket.on('reconnect_failed', () => {
+      console.error('❌ Reconnection failed after all attempts')
+      alert('⚠️ Could not connect to server. Please refresh the page.')
     })
 
     newSocket.on('disconnect', (reason) => {

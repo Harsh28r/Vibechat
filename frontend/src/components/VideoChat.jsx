@@ -210,6 +210,11 @@ function VideoChat({ preferences }) {
         console.log('⏳ Status changed to: searching')
       }
     })
+    
+    socket.on('error', ({ message }) => {
+      console.error('❌ Socket error:', message)
+      alert(`Socket error: ${message}`)
+    })
 
     socket.on('match-found', async ({ partnerId: newPartnerId, sessionId, partnerCountry: country }) => {
       console.log('🎯 Match found with:', newPartnerId)
