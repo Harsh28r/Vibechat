@@ -38,3 +38,4 @@ export const syncUserWithBackend = async (firebaseUser) => {
 export default syncUserWithBackend;
 
 
+
