@@ -95,6 +95,7 @@ function VideoChat({ preferences }) {
   const remoteVideoRef = useRef(null)
   const peerConnectionRef = useRef(null)
   const localStreamRef = useRef(null)
+  const partnerIdRef = useRef(null)
 
   // ICE servers for WebRTC (using free STUN servers)
   const iceServers = {
@@ -114,125 +115,70 @@ function VideoChat({ preferences }) {
 
     const initMedia = async () => {
       try {
-        console.log('📹 Requesting camera and microphone access with maximum quality...')
+        console.log('📹 Requesting camera and microphone access...')
         
-        // Try to get best possible quality - attempt 4K first, then 1080p, then 720p
+        // Simplified, robust approach: try best quality first, then fallback gracefully
         let stream = null
-        let videoConstraints = {}
+        let lastError = null
         
-        // First, try to get device capabilities
+        // Strategy 1: Try high quality with ideal values (most flexible)
         try {
-          const devices = await navigator.mediaDevices.enumerateDevices()
-          const videoDevices = devices.filter(device => device.kind === 'videoinput')
-          
-          if (videoDevices.length > 0) {
-            // Try 4K/1440p first (maximum quality)
-            try {
-              videoConstraints = {
-                deviceId: { exact: videoDevices[0].deviceId },
-                width: { ideal: 3840, min: 2560 },
-                height: { ideal: 2160, min: 1440 },
-                frameRate: { ideal: 60, min: 30 },
-                aspectRatio: { ideal: 16/9 },
-                facingMode: 'user',
-                resizeMode: 'none',
-                advanced: [
-                  { width: { min: 2560 } },
-                  { height: { min: 1440 } },
-                  { frameRate: { min: 30 } }
-                ]
-              }
-              console.log('🎯 Attempting 4K/1440p quality...')
-              stream = await navigator.mediaDevices.getUserMedia({
-                video: videoConstraints,
-                audio: {
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true,
-                  sampleRate: { ideal: 48000, min: 44100 },
-                  channelCount: { ideal: 2, min: 2 },
-                  latency: { ideal: 0.01, max: 0.1 },
-                  googEchoCancellation: true,
-                  googAutoGainControl: true,
-                  googNoiseSuppression: true,
-                  googHighpassFilter: true,
-                  googTypingNoiseDetection: true
-                }
-              })
-              console.log('✅ 4K/1440p quality obtained!')
-            } catch (e4k) {
-              console.log('⚠️ 4K not available, trying 1080p...')
-              // Fallback to 1080p
-              try {
-                videoConstraints = {
-                  deviceId: { exact: videoDevices[0].deviceId },
-                  width: { ideal: 1920, min: 1920 },
-                  height: { ideal: 1080, min: 1080 },
-                  frameRate: { ideal: 60, min: 30 },
-                  aspectRatio: { ideal: 16/9 },
-                  facingMode: 'user',
-                  resizeMode: 'none'
-                }
-                stream = await navigator.mediaDevices.getUserMedia({
-                  video: videoConstraints,
-                  audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                    sampleRate: { ideal: 48000, min: 44100 },
-                    channelCount: { ideal: 2, min: 2 },
-                    latency: { ideal: 0.01, max: 0.1 }
-                  }
-                })
-                console.log('✅ 1080p quality obtained!')
-              } catch (e1080) {
-                console.log('⚠️ 1080p not available, using 720p...')
-                // Final fallback to 720p
-                videoConstraints = {
-                  width: { ideal: 1280, min: 1280 },
-                  height: { ideal: 720, min: 720 },
-                  frameRate: { ideal: 30, min: 24 },
-                  aspectRatio: { ideal: 16/9 },
-                  facingMode: 'user'
-                }
-                stream = await navigator.mediaDevices.getUserMedia({
-                  video: videoConstraints,
-                  audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true,
-                    sampleRate: { ideal: 48000 },
-                    channelCount: { ideal: 2 }
-                  }
-                })
-                console.log('✅ 720p quality obtained!')
-              }
-            }
-          }
-        } catch (enumError) {
-          console.warn('⚠️ Could not enumerate devices, using default constraints')
-        }
-        
-        // If stream is still null, use default high-quality constraints
-        if (!stream) {
+          console.log('🎯 Attempting high quality (1080p @ 60fps)...')
           stream = await navigator.mediaDevices.getUserMedia({
             video: {
-              width: { ideal: 1920, min: 1280 },
-              height: { ideal: 1080, min: 720 },
-              frameRate: { ideal: 60, min: 30 },
-              aspectRatio: { ideal: 16/9 },
-              facingMode: 'user',
-              resizeMode: 'none'
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              frameRate: { ideal: 60 },
+              facingMode: 'user'
             },
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: { ideal: 48000, min: 44100 },
-              channelCount: { ideal: 2, min: 2 },
-              latency: { ideal: 0.01, max: 0.1 }
+              autoGainControl: true
             }
           })
+          console.log('✅ High quality obtained!')
+        } catch (error1) {
+          console.log('⚠️ High quality failed, trying medium quality...', error1.message)
+          lastError = error1
+          
+          // Strategy 2: Try medium quality
+          try {
+            console.log('🎯 Attempting medium quality (720p @ 30fps)...')
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 },
+                facingMode: 'user'
+              },
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+              }
+            })
+            console.log('✅ Medium quality obtained!')
+          } catch (error2) {
+            console.log('⚠️ Medium quality failed, trying basic quality...', error2.message)
+            lastError = error2
+            
+            // Strategy 3: Try basic quality (minimal constraints)
+            try {
+              console.log('🎯 Attempting basic quality (any resolution)...')
+              stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                  facingMode: 'user'
+                },
+                audio: true
+              })
+              console.log('✅ Basic quality obtained!')
+            } catch (error3) {
+              console.error('❌ All quality attempts failed!')
+              lastError = error3
+              throw error3
+            }
+          }
         }
 
         console.log('✅ Media access granted')
@@ -294,7 +240,22 @@ function VideoChat({ preferences }) {
         console.log('✅ start-search event emitted with country:', countryToUse)
       } catch (error) {
         console.error('❌ Error accessing media devices:', error)
-        alert('📹 Camera and microphone access is REQUIRED to use this platform!\n\nPlease:\n1. Allow camera/mic permissions\n2. Make sure no other app is using your camera\n3. Refresh and try again')
+        console.error('❌ Error name:', error.name)
+        console.error('❌ Error message:', error.message)
+        
+        let errorMessage = '📹 Camera and microphone access is REQUIRED!\n\n'
+        
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          errorMessage += 'Permission denied! Please:\n1. Click the lock icon in your browser\n2. Allow camera/microphone access\n3. Refresh the page'
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          errorMessage += 'No camera/microphone found! Please:\n1. Check your devices are connected\n2. Make sure they are not being used by another app'
+        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+          errorMessage += 'Camera/microphone is already in use! Please:\n1. Close other apps using your camera\n2. Refresh the page'
+        } else {
+          errorMessage += 'Failed to access camera/microphone:\n' + error.message + '\n\nPlease:\n1. Check browser permissions\n2. Make sure no other app is using your camera\n3. Try refreshing the page'
+        }
+        
+        alert(errorMessage)
       }
     }
 
@@ -323,6 +284,14 @@ function VideoChat({ preferences }) {
 
     socket.on('searching', ({ message }) => {
       console.log('🔍 Server says:', message)
+      
+      // Don't override 'connected' status if we already have a partner
+      // Use ref to avoid stale closure issue
+      if (partnerIdRef.current || peerConnectionRef.current) {
+        console.log('ℹ️ Already have partner/connection, ignoring searching event')
+        return
+      }
+      
       if (message.includes('Found someone') || message.includes('Connecting')) {
         setStatus('connecting')
         console.log('✨ Status changed to: connecting')
@@ -340,6 +309,7 @@ function VideoChat({ preferences }) {
     socket.on('match-found', async ({ partnerId: newPartnerId, sessionId, partnerCountry: country }) => {
       console.log('🎯 Match found with:', newPartnerId)
       setPartnerId(newPartnerId)
+      partnerIdRef.current = newPartnerId
       setPartnerCountry(country || null)
       setStatus('connected')
       
@@ -362,6 +332,12 @@ function VideoChat({ preferences }) {
 
     socket.on('webrtc-offer', async ({ offer, from }) => {
       console.log('📥 Received offer from:', from)
+      
+      // Set status to connected when we receive an offer (means match is established)
+      setStatus('connected')
+      setPartnerId(from)
+      partnerIdRef.current = from
+      console.log('✅ Status set to connected (received offer)')
       
       // Only create peer connection if we don't have one
       if (!peerConnectionRef.current) {
@@ -416,22 +392,7 @@ function VideoChat({ preferences }) {
           offerToReceiveVideo: true
         })
         
-        // Modify SDP for better quality
-        if (answer.sdp) {
-          const videoSettings = peerConnectionRef.current.getSenders()
-            .find(s => s.track?.kind === 'video')?.track?.getSettings() || {}
-          const width = videoSettings.width || 1920
-          const height = videoSettings.height || 1080
-          
-          answer.sdp = answer.sdp
-            .replace(/a=fmtp:\d+ ([^\r\n]+)/g, (match, fmtp) => {
-              if (fmtp.includes('x-google')) {
-                return match + ';x-google-min-bitrate=' + Math.floor((width >= 2560 || height >= 1440) ? 6000000 : 3000000)
-              }
-              return match
-            })
-        }
-        
+        // Set local description without modifying SDP (SDP modification was causing parse errors)
         await peerConnectionRef.current.setLocalDescription(answer)
         
         console.log('📤 Sending answer to:', from)
@@ -451,6 +412,10 @@ function VideoChat({ preferences }) {
           console.log('📝 Setting remote description from answer')
           await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer))
           console.log('✅ WebRTC connection established!')
+          // Ensure status is set to connected when we receive answer
+          setStatus('connected')
+          setPartnerId(from)
+          partnerIdRef.current = from
         }
       } catch (error) {
         console.error('❌ Error handling answer:', error)
@@ -574,12 +539,69 @@ function VideoChat({ preferences }) {
         console.error('❌ No local stream available!')
       }
 
-      // Handle incoming tracks
+      // Handle incoming tracks - CRITICAL for remote video display
       pc.ontrack = (event) => {
         console.log('✅ Received remote track:', event.track.kind)
-        if (remoteVideoRef.current && event.streams[0]) {
-          console.log('📺 Setting remote video stream')
-          remoteVideoRef.current.srcObject = event.streams[0]
+        console.log('📊 Track event details:', {
+          trackId: event.track.id,
+          trackKind: event.track.kind,
+          trackLabel: event.track.label,
+          streams: event.streams.length,
+          streamId: event.streams[0]?.id
+        })
+        
+        if (event.streams && event.streams.length > 0) {
+          const remoteStream = event.streams[0]
+          console.log('📺 Remote stream received:', {
+            id: remoteStream.id,
+            active: remoteStream.active,
+            videoTracks: remoteStream.getVideoTracks().length,
+            audioTracks: remoteStream.getAudioTracks().length
+          })
+          
+          if (remoteVideoRef.current) {
+            // Check if we already have this stream
+            if (remoteVideoRef.current.srcObject !== remoteStream) {
+              console.log('📺 Setting remote video stream to video element')
+              remoteVideoRef.current.srcObject = remoteStream
+              
+              // Force play in case autoplay is blocked
+              remoteVideoRef.current.play().catch(error => {
+                console.warn('⚠️ Could not autoplay remote video:', error)
+              })
+              
+              // Log video track details
+              const videoTrack = remoteStream.getVideoTracks()[0]
+              if (videoTrack) {
+                console.log('📹 Remote video track:', {
+                  id: videoTrack.id,
+                  label: videoTrack.label,
+                  enabled: videoTrack.enabled,
+                  readyState: videoTrack.readyState,
+                  settings: videoTrack.getSettings ? videoTrack.getSettings() : 'N/A'
+                })
+                
+                // Monitor track state changes
+                videoTrack.onended = () => {
+                  console.warn('⚠️ Remote video track ended')
+                }
+                
+                videoTrack.onmute = () => {
+                  console.warn('⚠️ Remote video track muted')
+                }
+                
+                videoTrack.onunmute = () => {
+                  console.log('✅ Remote video track unmuted')
+                }
+              }
+            } else {
+              console.log('ℹ️ Remote stream already set')
+            }
+          } else {
+            console.error('❌ remoteVideoRef.current is null!')
+          }
+        } else {
+          console.warn('⚠️ No streams in track event')
         }
       }
 
@@ -599,6 +621,31 @@ function VideoChat({ preferences }) {
         console.log('🔗 Connection state:', pc.connectionState)
         if (pc.connectionState === 'connected') {
           console.log('✅ Peer connection established!')
+          // Ensure status is set to connected
+          setStatus('connected')
+          
+          // Check if we have remote tracks
+          const receivers = pc.getReceivers()
+          console.log('📊 Receivers count:', receivers.length)
+          receivers.forEach((receiver, index) => {
+            const track = receiver.track
+            console.log(`📹 Receiver ${index}:`, {
+              kind: track.kind,
+              id: track.id,
+              enabled: track.enabled,
+              readyState: track.readyState
+            })
+            
+            // If we have a video track but no stream set, create one
+            if (track.kind === 'video' && remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
+              console.log('🔧 Creating stream from receiver track')
+              const stream = new MediaStream([track])
+              remoteVideoRef.current.srcObject = stream
+              remoteVideoRef.current.play().catch(error => {
+                console.warn('⚠️ Could not play video:', error)
+              })
+            }
+          })
         }
         if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
           console.log('❌ Peer connection failed/disconnected')
@@ -609,7 +656,21 @@ function VideoChat({ preferences }) {
       // Monitor ICE connection state
       pc.oniceconnectionstatechange = () => {
         console.log('🧊 ICE connection state:', pc.iceConnectionState)
+        if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+          console.log('✅ ICE connection established!')
+        }
       }
+      
+      // Monitor track events (alternative to ontrack)
+      pc.addEventListener('track', (event) => {
+        console.log('📡 Track event received via addEventListener')
+        if (event.streams && event.streams.length > 0 && remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0]
+          remoteVideoRef.current.play().catch(error => {
+            console.warn('⚠️ Could not play video:', error)
+          })
+        }
+      })
 
       // If we're the offerer, create and send offer
       if (isOfferer) {
@@ -656,34 +717,7 @@ function VideoChat({ preferences }) {
           offerToReceiveVideo: true
         })
         
-        // Modify SDP for better quality before setting local description
-        if (offer.sdp) {
-          // Get video dimensions for bitrate calculation
-          const videoSettings = pc.getSenders()
-            .find(s => s.track?.kind === 'video')?.track?.getSettings() || {}
-          const width = videoSettings.width || 1920
-          const height = videoSettings.height || 1080
-          
-          offer.sdp = offer.sdp
-            .replace(/a=fmtp:\d+ ([^\r\n]+)/g, (match, fmtp) => {
-              // Increase video quality in SDP
-              if (fmtp.includes('x-google')) {
-                return match + ';x-google-min-bitrate=' + Math.floor((width >= 2560 || height >= 1440) ? 6000000 : 3000000)
-              }
-              return match
-            })
-            // Prefer VP9 codec if available
-            .split('\r\n')
-            .sort((a, b) => {
-              if (a.includes('VP9')) return -1
-              if (b.includes('VP9')) return 1
-              if (a.includes('VP8')) return -1
-              if (b.includes('VP8')) return 1
-              return 0
-            })
-            .join('\r\n')
-        }
-        
+        // Set local description without modifying SDP (SDP modification was causing parse errors)
         await pc.setLocalDescription(offer)
         
         socket.emit('webrtc-offer', {
@@ -701,6 +735,7 @@ function VideoChat({ preferences }) {
   const handlePartnerDisconnected = () => {
     setStatus('disconnected')
     setPartnerId(null)
+    partnerIdRef.current = null
     
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close()
@@ -1187,7 +1222,31 @@ function VideoChat({ preferences }) {
               ref={remoteVideoRef}
               autoPlay
               playsInline
+              muted={false}
               className="video"
+              onLoadedMetadata={() => {
+                console.log('✅ Remote video metadata loaded')
+                if (remoteVideoRef.current) {
+                  console.log('📹 Remote video dimensions:', {
+                    videoWidth: remoteVideoRef.current.videoWidth,
+                    videoHeight: remoteVideoRef.current.videoHeight,
+                    readyState: remoteVideoRef.current.readyState
+                  })
+                }
+              }}
+              onLoadedData={() => {
+                console.log('✅ Remote video data loaded')
+              }}
+              onCanPlay={() => {
+                console.log('✅ Remote video can play')
+              }}
+              onPlaying={() => {
+                console.log('▶️ Remote video is playing!')
+              }}
+              onError={(e) => {
+                console.error('❌ Remote video error:', e)
+                console.error('❌ Video error code:', remoteVideoRef.current?.error)
+              }}
             />
             {/* TV Static Effect - Like Omegle/OmeTV */}
             {(status === 'searching' || status === 'connecting') && (
