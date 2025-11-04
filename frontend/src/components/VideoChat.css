@@ -33,6 +33,14 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Ensure video renders at native resolution */
+  transform: translateZ(0);
+  will-change: contents;
 }
 
 .remote-video {

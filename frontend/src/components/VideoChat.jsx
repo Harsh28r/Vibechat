@@ -114,19 +114,126 @@ function VideoChat({ preferences }) {
 
     const initMedia = async () => {
       try {
-        console.log('📹 Requesting camera and microphone access...')
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
-          },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
+        console.log('📹 Requesting camera and microphone access with maximum quality...')
+        
+        // Try to get best possible quality - attempt 4K first, then 1080p, then 720p
+        let stream = null
+        let videoConstraints = {}
+        
+        // First, try to get device capabilities
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices()
+          const videoDevices = devices.filter(device => device.kind === 'videoinput')
+          
+          if (videoDevices.length > 0) {
+            // Try 4K/1440p first (maximum quality)
+            try {
+              videoConstraints = {
+                deviceId: { exact: videoDevices[0].deviceId },
+                width: { ideal: 3840, min: 2560 },
+                height: { ideal: 2160, min: 1440 },
+                frameRate: { ideal: 60, min: 30 },
+                aspectRatio: { ideal: 16/9 },
+                facingMode: 'user',
+                resizeMode: 'none',
+                advanced: [
+                  { width: { min: 2560 } },
+                  { height: { min: 1440 } },
+                  { frameRate: { min: 30 } }
+                ]
+              }
+              console.log('🎯 Attempting 4K/1440p quality...')
+              stream = await navigator.mediaDevices.getUserMedia({
+                video: videoConstraints,
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true,
+                  sampleRate: { ideal: 48000, min: 44100 },
+                  channelCount: { ideal: 2, min: 2 },
+                  latency: { ideal: 0.01, max: 0.1 },
+                  googEchoCancellation: true,
+                  googAutoGainControl: true,
+                  googNoiseSuppression: true,
+                  googHighpassFilter: true,
+                  googTypingNoiseDetection: true
+                }
+              })
+              console.log('✅ 4K/1440p quality obtained!')
+            } catch (e4k) {
+              console.log('⚠️ 4K not available, trying 1080p...')
+              // Fallback to 1080p
+              try {
+                videoConstraints = {
+                  deviceId: { exact: videoDevices[0].deviceId },
+                  width: { ideal: 1920, min: 1920 },
+                  height: { ideal: 1080, min: 1080 },
+                  frameRate: { ideal: 60, min: 30 },
+                  aspectRatio: { ideal: 16/9 },
+                  facingMode: 'user',
+                  resizeMode: 'none'
+                }
+                stream = await navigator.mediaDevices.getUserMedia({
+                  video: videoConstraints,
+                  audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    sampleRate: { ideal: 48000, min: 44100 },
+                    channelCount: { ideal: 2, min: 2 },
+                    latency: { ideal: 0.01, max: 0.1 }
+                  }
+                })
+                console.log('✅ 1080p quality obtained!')
+              } catch (e1080) {
+                console.log('⚠️ 1080p not available, using 720p...')
+                // Final fallback to 720p
+                videoConstraints = {
+                  width: { ideal: 1280, min: 1280 },
+                  height: { ideal: 720, min: 720 },
+                  frameRate: { ideal: 30, min: 24 },
+                  aspectRatio: { ideal: 16/9 },
+                  facingMode: 'user'
+                }
+                stream = await navigator.mediaDevices.getUserMedia({
+                  video: videoConstraints,
+                  audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    sampleRate: { ideal: 48000 },
+                    channelCount: { ideal: 2 }
+                  }
+                })
+                console.log('✅ 720p quality obtained!')
+              }
+            }
           }
-        })
+        } catch (enumError) {
+          console.warn('⚠️ Could not enumerate devices, using default constraints')
+        }
+        
+        // If stream is still null, use default high-quality constraints
+        if (!stream) {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 },
+              frameRate: { ideal: 60, min: 30 },
+              aspectRatio: { ideal: 16/9 },
+              facingMode: 'user',
+              resizeMode: 'none'
+            },
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: { ideal: 48000, min: 44100 },
+              channelCount: { ideal: 2, min: 2 },
+              latency: { ideal: 0.01, max: 0.1 }
+            }
+          })
+        }
 
         console.log('✅ Media access granted')
         
@@ -135,6 +242,20 @@ function VideoChat({ preferences }) {
         if (!videoTrack || !videoTrack.enabled) {
           alert('📹 Camera must be ON to use this platform!')
           return
+        }
+        
+        // Log actual video quality settings
+        if (videoTrack.getSettings) {
+          const settings = videoTrack.getSettings()
+          console.log('📹 Video Quality Settings:', {
+            width: settings.width,
+            height: settings.height,
+            frameRate: settings.frameRate,
+            aspectRatio: settings.aspectRatio
+          })
+        } else if (videoTrack.getCapabilities) {
+          const capabilities = videoTrack.getCapabilities()
+          console.log('📹 Video Capabilities:', capabilities)
         }
         
         localStreamRef.current = stream
@@ -253,7 +374,64 @@ function VideoChat({ preferences }) {
         await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer))
         
         console.log('💬 Creating answer')
-        const answer = await peerConnectionRef.current.createAnswer()
+        
+        // Set high quality video encoding before creating answer
+        try {
+          const senders = peerConnectionRef.current.getSenders()
+          for (const sender of senders) {
+            if (sender.track && sender.track.kind === 'video') {
+              const params = sender.getParameters()
+              if (!params.encodings) {
+                params.encodings = [{}]
+              }
+              // Get current video settings to determine optimal bitrate
+              const videoSettings = sender.track?.getSettings() || {}
+              const width = videoSettings.width || 1920
+              const height = videoSettings.height || 1080
+              
+              let maxBitrate = 4000000 // Default 4 Mbps for 1080p
+              if (width >= 2560 || height >= 1440) {
+                maxBitrate = 8000000 // 8 Mbps for 1440p/4K
+              } else if (width >= 1920 || height >= 1080) {
+                maxBitrate = 4000000 // 4 Mbps for 1080p
+              }
+              
+              params.encodings[0] = {
+                ...params.encodings[0],
+                maxBitrate: maxBitrate,
+                minBitrate: Math.floor(maxBitrate * 0.5),
+                maxFramerate: 60,
+                scaleResolutionDownBy: 1.0,
+                networkPriority: 'high'
+              }
+              await sender.setParameters(params)
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ Could not set encoding before answer:', error)
+        }
+        
+        const answer = await peerConnectionRef.current.createAnswer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true
+        })
+        
+        // Modify SDP for better quality
+        if (answer.sdp) {
+          const videoSettings = peerConnectionRef.current.getSenders()
+            .find(s => s.track?.kind === 'video')?.track?.getSettings() || {}
+          const width = videoSettings.width || 1920
+          const height = videoSettings.height || 1080
+          
+          answer.sdp = answer.sdp
+            .replace(/a=fmtp:\d+ ([^\r\n]+)/g, (match, fmtp) => {
+              if (fmtp.includes('x-google')) {
+                return match + ';x-google-min-bitrate=' + Math.floor((width >= 2560 || height >= 1440) ? 6000000 : 3000000)
+              }
+              return match
+            })
+        }
+        
         await peerConnectionRef.current.setLocalDescription(answer)
         
         console.log('📤 Sending answer to:', from)
@@ -337,12 +515,60 @@ function VideoChat({ preferences }) {
       const pc = new RTCPeerConnection(iceServers)
       peerConnectionRef.current = pc
 
-      // Add local stream tracks to peer connection
+      // Add local stream tracks to peer connection with quality settings
       if (localStreamRef.current) {
         console.log('📹 Adding local tracks to peer connection')
-        localStreamRef.current.getTracks().forEach(track => {
+        localStreamRef.current.getTracks().forEach(async track => {
           console.log('➕ Adding track:', track.kind)
-          pc.addTrack(track, localStreamRef.current)
+          const sender = pc.addTrack(track, localStreamRef.current)
+          
+          // Configure video encoding for high quality
+          if (track.kind === 'video' && sender) {
+            try {
+              const params = sender.getParameters()
+              if (!params.encodings) {
+                params.encodings = [{}]
+              }
+              // Set maximum quality encoding parameters
+              // Determine bitrate based on resolution
+              const videoSettings = track.getSettings()
+              const width = videoSettings.width || 1920
+              const height = videoSettings.height || 1080
+              
+              // Calculate optimal bitrate: higher resolution = higher bitrate
+              let maxBitrate = 4000000 // 4 Mbps for 1080p default
+              if (width >= 2560 || height >= 1440) {
+                maxBitrate = 8000000 // 8 Mbps for 1440p/4K
+              } else if (width >= 1920 || height >= 1080) {
+                maxBitrate = 4000000 // 4 Mbps for 1080p
+              } else {
+                maxBitrate = 2500000 // 2.5 Mbps for 720p
+              }
+              
+              params.encodings[0] = {
+                ...params.encodings[0],
+                maxBitrate: maxBitrate,
+                minBitrate: Math.floor(maxBitrate * 0.5), // 50% of max as minimum
+                maxFramerate: 60, // Try 60fps
+                scaleResolutionDownBy: 1.0, // No downscaling
+                rid: 'high',
+                networkPriority: 'high'
+              }
+              
+              // Add codec preferences for better quality
+              if (params.codecs) {
+                // Prefer VP9, VP8, then H264
+                params.codecs.sort((a, b) => {
+                  const priority = { 'VP9': 3, 'VP8': 2, 'H264': 1 }
+                  return (priority[b.mimeType.split('/')[1]] || 0) - (priority[a.mimeType.split('/')[1]] || 0)
+                })
+              }
+              await sender.setParameters(params)
+              console.log('✅ High quality video encoding configured')
+            } catch (error) {
+              console.warn('⚠️ Could not set video encoding parameters:', error)
+            }
+          }
         })
       } else {
         console.error('❌ No local stream available!')
@@ -388,7 +614,76 @@ function VideoChat({ preferences }) {
       // If we're the offerer, create and send offer
       if (isOfferer) {
         console.log('📤 Creating and sending offer to:', remoteId)
-        const offer = await pc.createOffer()
+        
+        // Set maximum quality video encoding before creating offer
+        try {
+          const senders = pc.getSenders()
+          for (const sender of senders) {
+            if (sender.track && sender.track.kind === 'video') {
+              const params = sender.getParameters()
+              if (!params.encodings) {
+                params.encodings = [{}]
+              }
+              // Get current video settings to determine optimal bitrate
+              const videoSettings = sender.track?.getSettings() || {}
+              const width = videoSettings.width || 1920
+              const height = videoSettings.height || 1080
+              
+              let maxBitrate = 4000000 // Default 4 Mbps for 1080p
+              if (width >= 2560 || height >= 1440) {
+                maxBitrate = 8000000 // 8 Mbps for 1440p/4K
+              } else if (width >= 1920 || height >= 1080) {
+                maxBitrate = 4000000 // 4 Mbps for 1080p
+              }
+              
+              params.encodings[0] = {
+                ...params.encodings[0],
+                maxBitrate: maxBitrate,
+                minBitrate: Math.floor(maxBitrate * 0.5),
+                maxFramerate: 60,
+                scaleResolutionDownBy: 1.0,
+                networkPriority: 'high'
+              }
+              await sender.setParameters(params)
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ Could not set encoding before offer:', error)
+        }
+        
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true
+        })
+        
+        // Modify SDP for better quality before setting local description
+        if (offer.sdp) {
+          // Get video dimensions for bitrate calculation
+          const videoSettings = pc.getSenders()
+            .find(s => s.track?.kind === 'video')?.track?.getSettings() || {}
+          const width = videoSettings.width || 1920
+          const height = videoSettings.height || 1080
+          
+          offer.sdp = offer.sdp
+            .replace(/a=fmtp:\d+ ([^\r\n]+)/g, (match, fmtp) => {
+              // Increase video quality in SDP
+              if (fmtp.includes('x-google')) {
+                return match + ';x-google-min-bitrate=' + Math.floor((width >= 2560 || height >= 1440) ? 6000000 : 3000000)
+              }
+              return match
+            })
+            // Prefer VP9 codec if available
+            .split('\r\n')
+            .sort((a, b) => {
+              if (a.includes('VP9')) return -1
+              if (b.includes('VP9')) return 1
+              if (a.includes('VP8')) return -1
+              if (b.includes('VP8')) return 1
+              return 0
+            })
+            .join('\r\n')
+        }
+        
         await pc.setLocalDescription(offer)
         
         socket.emit('webrtc-offer', {
