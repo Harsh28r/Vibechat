@@ -6,41 +6,41 @@ import ChatBox from './ChatBox'
 
 // Country list for filter (same as Preferences)
 const COUNTRIES = [
-  { code: 'ANY', name: '🌍 Any Country', flag: '🌍' },
-  { code: 'US', name: '🇺🇸 United States', flag: '🇺🇸' },
-  { code: 'IN', name: '🇮🇳 India', flag: '🇮🇳' },
-  { code: 'GB', name: '🇬🇧 United Kingdom', flag: '🇬🇧' },
-  { code: 'CA', name: '🇨🇦 Canada', flag: '🇨🇦' },
-  { code: 'AU', name: '🇦🇺 Australia', flag: '🇦🇺' },
-  { code: 'DE', name: '🇩🇪 Germany', flag: '🇩🇪' },
-  { code: 'FR', name: '🇫🇷 France', flag: '🇫🇷' },
-  { code: 'ES', name: '🇪🇸 Spain', flag: '🇪🇸' },
-  { code: 'IT', name: '🇮🇹 Italy', flag: '🇮🇹' },
-  { code: 'NL', name: '🇳🇱 Netherlands', flag: '🇳🇱' },
-  { code: 'BR', name: '🇧🇷 Brazil', flag: '🇧🇷' },
-  { code: 'MX', name: '🇲🇽 Mexico', flag: '🇲🇽' },
-  { code: 'AR', name: '🇦🇷 Argentina', flag: '🇦🇷' },
-  { code: 'PK', name: '🇵🇰 Pakistan', flag: '🇵🇰' },
-  { code: 'BD', name: '🇧🇩 Bangladesh', flag: '🇧🇩' },
-  { code: 'JP', name: '🇯🇵 Japan', flag: '🇯🇵' },
-  { code: 'KR', name: '🇰🇷 South Korea', flag: '🇰🇷' },
-  { code: 'CN', name: '🇨🇳 China', flag: '🇨🇳' },
-  { code: 'TH', name: '🇹🇭 Thailand', flag: '🇹🇭' },
-  { code: 'VN', name: '🇻🇳 Vietnam', flag: '🇻🇳' },
-  { code: 'PH', name: '🇵🇭 Philippines', flag: '🇵🇭' },
-  { code: 'ID', name: '🇮🇩 Indonesia', flag: '🇮🇩' },
-  { code: 'MY', name: '🇲🇾 Malaysia', flag: '🇲🇾' },
-  { code: 'SG', name: '🇸🇬 Singapore', flag: '🇸🇬' },
-  { code: 'RU', name: '🇷🇺 Russia', flag: '🇷🇺' },
-  { code: 'UA', name: '🇺🇦 Ukraine', flag: '🇺🇦' },
-  { code: 'PL', name: '🇵🇱 Poland', flag: '🇵🇱' },
-  { code: 'TR', name: '🇹🇷 Turkey', flag: '🇹🇷' },
-  { code: 'SA', name: '🇸🇦 Saudi Arabia', flag: '🇸🇦' },
-  { code: 'AE', name: '🇦🇪 UAE', flag: '🇦🇪' },
-  { code: 'EG', name: '🇪🇬 Egypt', flag: '🇪🇬' },
-  { code: 'ZA', name: '🇿🇦 South Africa', flag: '🇿🇦' },
-  { code: 'NG', name: '🇳🇬 Nigeria', flag: '🇳🇬' },
-  { code: 'KE', name: '🇰🇪 Kenya', flag: '🇰🇪' }
+  { code: 'ANY', name: 'Any Country', flag: '🌍' },
+  { code: 'US', name: 'United States', flag: '🇺🇸' },
+  { code: 'IN', name: 'India', flag: '🇮🇳' },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
+  { code: 'AU', name: 'Australia', flag: '🇦🇺' },
+  { code: 'DE', name: 'Germany', flag: '🇩🇪' },
+  { code: 'FR', name: 'France', flag: '🇫🇷' },
+  { code: 'ES', name: 'Spain', flag: '🇪🇸' },
+  { code: 'IT', name: 'Italy', flag: '🇮🇹' },
+  { code: 'NL', name: 'Netherlands', flag: '🇳🇱' },
+  { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
+  { code: 'MX', name: 'Mexico', flag: '🇲🇽' },
+  { code: 'AR', name: 'Argentina', flag: '🇦🇷' },
+  { code: 'PK', name: 'Pakistan', flag: '🇵🇰' },
+  { code: 'BD', name: 'Bangladesh', flag: '🇧🇩' },
+  { code: 'JP', name: 'Japan', flag: '🇯🇵' },
+  { code: 'KR', name: 'South Korea', flag: '🇰🇷' },
+  { code: 'CN', name: 'China', flag: '🇨🇳' },
+  { code: 'TH', name: 'Thailand', flag: '🇹🇭' },
+  { code: 'VN', name: 'Vietnam', flag: '🇻🇳' },
+  { code: 'PH', name: 'Philippines', flag: '🇵🇭' },
+  { code: 'ID', name: 'Indonesia', flag: '🇮🇩' },
+  { code: 'MY', name: 'Malaysia', flag: '🇲🇾' },
+  { code: 'SG', name: 'Singapore', flag: '🇸🇬' },
+  { code: 'RU', name: 'Russia', flag: '🇷🇺' },
+  { code: 'UA', name: 'Ukraine', flag: '🇺🇦' },
+  { code: 'PL', name: 'Poland', flag: '🇵🇱' },
+  { code: 'TR', name: 'Turkey', flag: '🇹🇷' },
+  { code: 'SA', name: 'Saudi Arabia', flag: '🇸🇦' },
+  { code: 'AE', name: 'UAE', flag: '🇦🇪' },
+  { code: 'EG', name: 'Egypt', flag: '🇪🇬' },
+  { code: 'ZA', name: 'South Africa', flag: '🇿🇦' },
+  { code: 'NG', name: 'Nigeria', flag: '🇳🇬' },
+  { code: 'KE', name: 'Kenya', flag: '🇰🇪' }
 ]
 
 // Country code to flag emoji mapping
@@ -1255,15 +1255,15 @@ function VideoChat({ preferences }) {
             {status === 'searching' && (
               <div className="status-overlay">
                 <div className="spinner"></div>
-                <h2>Finding someone amazing...</h2>
-                <p>⚡ Lightning-fast matching in progress</p>
+                <h2>Searching for Partner</h2>
+                <p>Matching in progress...</p>
               </div>
             )}
             {status === 'connecting' && (
               <div className="status-overlay">
                 <div className="spinner fast"></div>
-                <h2>Found someone! 🎉</h2>
-                <p>✨ Connecting instantly...</p>
+                <h2>Partner Found</h2>
+                <p>Establishing connection...</p>
               </div>
             )}
             {status === 'connected' && partnerCountry && partnerCountry !== 'Unknown' && partnerCountry !== 'ANY' && (
@@ -1474,7 +1474,7 @@ function VideoChat({ preferences }) {
           <div className="video-warning">
             <div className="warning-content">
               <VideoIcon size={32} />
-              <h3>📹 Camera Must Stay ON</h3>
+              <h3>Camera Required</h3>
               <p>Video is required on this platform to ensure authenticity and safety for all users.</p>
             </div>
           </div>
@@ -1547,7 +1547,7 @@ function VideoChat({ preferences }) {
                       }}
                     >
                       <span className="country-flag-small">{country.flag}</span>
-                      <span className="country-name-small">{country.name.replace(/^[^\s]+\s/, '')}</span>
+                      <span className="country-name-small">{country.name}</span>
                       {selectedCountry === country.code && (
                         <span className="check-mark">✓</span>
                       )}

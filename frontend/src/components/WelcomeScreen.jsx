@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Video, Users, Shield, Zap, Sparkles, Settings, Moon, Sun, LogIn, UserPlus, LogOut } from 'lucide-react'
+import { Video, Users, Shield, Zap, Settings, Moon, Sun, LogIn, UserPlus, LogOut } from 'lucide-react'
 import './WelcomeScreen.css'
 import Preferences from './Preferences'
 import { useAuth } from '../context/AuthContext'
@@ -45,68 +45,69 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
       </div>
 
       <div className="welcome-container">
-        {/* Left Side - Video Preview */}
-        <div className="video-preview-section">
-          <div className="video-preview-box">
-            {/* Background Video - Using animated gradient for now */}
-            {/* To add your own video: Put video.mp4 in frontend/public/ folder and uncomment below */}
-            {/* <video className="preview-video" autoPlay loop muted playsInline>
-              <source src="/video.mp4" type="video/mp4" />
-            </video> */}
-            
-            {/* Animated Background Fallback */}
-            <div className="video-fallback"></div>
-            
-            <div className="preview-overlay">
-              <div className="live-badge-top">
-                <span className="live-dot"></span>
-                <span>LIVE NOW</span>
-              </div>
+        {/* Unified Card - Combined Left and Right */}
+        <div className="unified-welcome-card fade-in">
+          {/* Left Side - Video Preview */}
+          <div className="video-preview-section">
+            <div className="video-preview-box">
+              {/* Background Video - Using animated gradient for now */}
+              {/* To add your own video: Put video.mp4 in frontend/public/ folder and uncomment below */}
+              {/* <video className="preview-video" autoPlay loop muted playsInline>
+                <source src="/video.mp4" type="video/mp4" />
+              </video> */}
               
-              <div className="preview-content">
-                <div className="preview-icon">
-                  <Video size={50} />
+              {/* Animated Background Fallback */}
+              <div className="video-fallback"></div>
+              
+              <div className="preview-overlay">
+                <div className="live-badge-top">
+                  <span className="live-dot"></span>
+                  <span>LIVE NOW</span>
                 </div>
-                <h2>See Who's Online</h2>
-                <p>Thousands of people ready to chat</p>
-                <div className="video-stats">
-                  <div className="stat-pill">
-                    <Users size={20} />
-                    <span>5K+ Online</span>
+                
+                <div className="preview-content">
+                  <div className="preview-icon">
+                    <Video size={50} />
                   </div>
-                  <div className="stat-pill">
-                    <Zap size={20} />
-                    <span>Instant Match</span>
+                  <h2>Active Users</h2>
+                  <p>Connect with professionals worldwide</p>
+                  <div className="video-stats">
+                    <div className="stat-pill">
+                      <Users size={20} />
+                      <span>5,000+ Online</span>
+                    </div>
+                    <div className="stat-pill">
+                      <Zap size={20} />
+                      <span>Fast Connection</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Right Side - Welcome Form */}
-        <div className="welcome-content fade-in">
+          {/* Right Side - Welcome Form */}
+          <div className="welcome-content">
 
         <div className="logo">
           <div className="logo-icon-wrapper">
             <div className="logo-circle">
               <Video size={32} className="logo-icon" />
             </div>
-            <Sparkles size={16} className="sparkle-icon" />
           </div>
           <div className="brand-name">
-            <h1>VibeChat</h1>
-            <span className="brand-subtitle">🌍 Connect instantly. Chat globally. 🚀</span>
+            <h1>GenauraTV</h1>
+            <span className="brand-subtitle">Professional Video Communication Platform</span>
           </div>
         </div>
         
         <div className="tagline-wrapper">
           <p className="tagline">
-            <span className="tagline-item">🌎 Meet new people worldwide</span>
+            <span className="tagline-item">Global Network</span>
             <span className="tagline-divider">•</span>
-            <span className="tagline-item">⚡ Instant connections</span>
+            <span className="tagline-item">Instant Connection</span>
             <span className="tagline-divider">•</span>
-            <span className="tagline-item">🎉 100% Free</span>
+            <span className="tagline-item">Secure & Private</span>
           </p>
         </div>
 
@@ -149,7 +150,7 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
           onClick={onStart}
           disabled={!isConnected}
         >
-          {isConnected ? '🎥 Start Video Chat' : 'Connecting...'}
+          {isConnected ? 'Start Video Chat' : 'Connecting...'}
         </button>
 
         {/* Connection Status - Only show for authenticated users */}
@@ -163,7 +164,7 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
             </div>
             {isConnected && user && (
               <div className="welcome-message">
-                <span className="wave">👋</span> Welcome back, <strong>{user.displayName || user.username}</strong>!
+                Welcome back, <strong>{user.displayName || user.username}</strong>
               </div>
             )}
           </div>
@@ -179,9 +180,10 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
         )}
 
         <div className="disclaimer">
-          <p>📹 Camera required • Be respectful • Have fun! 🌟</p>
+          <p>Camera required • Maintain professional conduct • Secure connection</p>
         </div>
-      </div>
+          </div>
+        </div>
       </div>
 
       <Preferences

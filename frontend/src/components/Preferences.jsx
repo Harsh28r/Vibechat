@@ -3,55 +3,55 @@ import { Users, MapPin, Heart, Settings, X } from 'lucide-react'
 import './Preferences.css'
 
 const INTERESTS = [
-  '🎮 Gaming', '🎵 Music', '🎬 Movies', '⚽ Sports',
-  '✈️ Travel', '🍕 Food', '🎨 Art', '💻 Technology',
-  '📚 Books', '🎭 Theater', '🏋️ Fitness', '🐕 Pets',
-  '📸 Photography', '🎤 Singing', '💃 Dancing', '🎓 Education'
+  'Gaming', 'Music', 'Movies', 'Sports',
+  'Travel', 'Food', 'Art', 'Technology',
+  'Books', 'Theater', 'Fitness', 'Pets',
+  'Photography', 'Singing', 'Dancing', 'Education'
 ];
 
 const COUNTRIES = [
-  { code: 'ANY', name: '🌍 Any Country (Worldwide)' },
-  { code: 'US', name: '🇺🇸 United States' },
-  { code: 'IN', name: '🇮🇳 India' },
-  { code: 'GB', name: '🇬🇧 United Kingdom' },
-  { code: 'CA', name: '🇨🇦 Canada' },
-  { code: 'AU', name: '🇦🇺 Australia' },
-  { code: 'DE', name: '🇩🇪 Germany' },
-  { code: 'FR', name: '🇫🇷 France' },
-  { code: 'ES', name: '🇪🇸 Spain' },
-  { code: 'IT', name: '🇮🇹 Italy' },
-  { code: 'NL', name: '🇳🇱 Netherlands' },
-  { code: 'BR', name: '🇧🇷 Brazil' },
-  { code: 'MX', name: '🇲🇽 Mexico' },
-  { code: 'AR', name: '🇦🇷 Argentina' },
-  { code: 'PK', name: '🇵🇰 Pakistan' },
-  { code: 'BD', name: '🇧🇩 Bangladesh' },
-  { code: 'JP', name: '🇯🇵 Japan' },
-  { code: 'KR', name: '🇰🇷 South Korea' },
-  { code: 'CN', name: '🇨🇳 China' },
-  { code: 'TH', name: '🇹🇭 Thailand' },
-  { code: 'VN', name: '🇻🇳 Vietnam' },
-  { code: 'PH', name: '🇵🇭 Philippines' },
-  { code: 'ID', name: '🇮🇩 Indonesia' },
-  { code: 'MY', name: '🇲🇾 Malaysia' },
-  { code: 'SG', name: '🇸🇬 Singapore' },
-  { code: 'RU', name: '🇷🇺 Russia' },
-  { code: 'UA', name: '🇺🇦 Ukraine' },
-  { code: 'PL', name: '🇵🇱 Poland' },
-  { code: 'TR', name: '🇹🇷 Turkey' },
-  { code: 'SA', name: '🇸🇦 Saudi Arabia' },
-  { code: 'AE', name: '🇦🇪 UAE' },
-  { code: 'EG', name: '🇪🇬 Egypt' },
-  { code: 'ZA', name: '🇿🇦 South Africa' },
-  { code: 'NG', name: '🇳🇬 Nigeria' },
-  { code: 'KE', name: '🇰🇪 Kenya' }
+  { code: 'ANY', name: 'Any Country (Worldwide)' },
+  { code: 'US', name: 'United States' },
+  { code: 'IN', name: 'India' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'AR', name: 'Argentina' },
+  { code: 'PK', name: 'Pakistan' },
+  { code: 'BD', name: 'Bangladesh' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'KR', name: 'South Korea' },
+  { code: 'CN', name: 'China' },
+  { code: 'TH', name: 'Thailand' },
+  { code: 'VN', name: 'Vietnam' },
+  { code: 'PH', name: 'Philippines' },
+  { code: 'ID', name: 'Indonesia' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'RU', name: 'Russia' },
+  { code: 'UA', name: 'Ukraine' },
+  { code: 'PL', name: 'Poland' },
+  { code: 'TR', name: 'Turkey' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'AE', name: 'UAE' },
+  { code: 'EG', name: 'Egypt' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'KE', name: 'Kenya' }
 ];
 
 const GENDERS = [
-  { value: 'any', label: '👥 Everyone' },
-  { value: 'male', label: '👨 Male' },
-  { value: 'female', label: '👩 Female' },
-  { value: 'other', label: '🌈 Other' }
+  { value: 'any', label: 'Everyone' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' }
 ];
 
 function Preferences({ isOpen, onClose, preferences, onSave }) {
@@ -131,7 +131,7 @@ function Preferences({ isOpen, onClose, preferences, onSave }) {
               <h3>Match People From</h3>
             </div>
             <p className="section-description">
-              Choose a specific country or chat with anyone worldwide!
+              Select a specific country or choose worldwide to connect with anyone
             </p>
             <select
               className="country-select"
@@ -153,7 +153,7 @@ function Preferences({ isOpen, onClose, preferences, onSave }) {
               <h3>Interests (Optional)</h3>
             </div>
             <p className="section-description">
-              Select interests to match with people who share them!
+              Select interests to match with people who share similar preferences
             </p>
             <div className="interests-grid">
               {INTERESTS.map(interest => (
@@ -174,7 +174,7 @@ function Preferences({ isOpen, onClose, preferences, onSave }) {
             Cancel
           </button>
           <button className="save-btn" onClick={handleSave}>
-            Save & Start Chatting
+            Save Preferences
           </button>
         </div>
       </div>

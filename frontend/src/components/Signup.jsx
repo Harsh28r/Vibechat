@@ -111,7 +111,7 @@ function Signup({ onSwitchToLogin, onClose }) {
         <div className="auth-header">
           <UserPlus size={40} className="auth-icon" />
           <h2>Create Account</h2>
-          <p>Join VibeChat today!</p>
+          <p>Register for a new account</p>
         </div>
 
         {error && (

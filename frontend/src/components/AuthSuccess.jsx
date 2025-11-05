@@ -31,8 +31,8 @@ function AuthSuccess() {
       fontSize: '18px'
     }}>
       <div>
-        <h2>✅ Authentication Successful!</h2>
-        <p>Redirecting...</p>
+        <h2>Authentication Successful</h2>
+        <p>Redirecting to your account...</p>
       </div>
     </div>
   );

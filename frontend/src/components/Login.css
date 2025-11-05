@@ -14,22 +14,21 @@
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border-radius: 24px;
+  border-radius: 12px;
   padding: 2rem 2.5rem;
   width: 90%;
   max-width: 450px;
   box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
   animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .dark-mode .auth-card {
@@ -77,7 +76,7 @@
 }
 
 .auth-icon {
-  color: #3b82f6;
+  color: #1e3a8a;
   margin-bottom: 0.5rem;
   width: 40px;
   height: 40px;
@@ -86,8 +85,8 @@
 .auth-header h2 {
   margin: 0 0 8px 0;
   font-size: 1.75rem;
-  color: #333;
-  font-weight: 800;
+  color: #1e3a8a;
+  font-weight: 700;
 }
 
 .dark-mode .auth-header h2 {
@@ -146,7 +145,7 @@
   display: flex;
   align-items: center;
   background: #f5f5f5;
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 0.75rem 1rem;
   border: 1px solid transparent;
   transition: all 0.3s ease;
@@ -158,9 +157,9 @@
 }
 
 .form-group:focus-within {
-  border-color: #3b82f6;
+  border-color: #1e3a8a;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
 }
 
 .dark-mode .form-group:focus-within {
@@ -204,15 +203,15 @@
 }
 
 .password-toggle:hover {
-  color: #3b82f6;
+  color: #1e3a8a;
 }
 
 .auth-btn {
   padding: 0.85rem 1.25rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -227,12 +226,9 @@
 }
 
 .auth-btn.primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  background-size: 200% 100%;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
   color: white;
-  box-shadow: 
-    0 8px 25px rgba(59, 130, 246, 0.4),
-    0 0 0 0 rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
   margin-top: 0.5rem;
   position: relative;
   overflow: hidden;
@@ -257,11 +253,8 @@
 }
 
 .auth-btn.primary:hover:not(:disabled) {
-  background-position: 100% 0;
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 
-    0 10px 30px rgba(59, 130, 246, 0.5),
-    0 0 0 8px rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+  box-shadow: 0 6px 20px rgba(30, 58, 138, 0.4);
 }
 
 .auth-btn.facebook {
@@ -381,8 +374,8 @@
 .link-btn {
   background: none;
   border: none;
-  color: #3b82f6;
-  font-weight: 700;
+  color: #1e3a8a;
+  font-weight: 600;
   cursor: pointer;
   padding: 0;
   text-decoration: none;
@@ -391,7 +384,7 @@
 }
 
 .link-btn:hover {
-  color: #2563eb;
+  color: #1e40af;
   text-decoration: underline;
 }
 

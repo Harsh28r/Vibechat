@@ -99,7 +99,7 @@ function ChatBox({ messages, onSendMessage, onTyping, partnerTyping, isConnected
         {messages.length === 0 && (
           <div className="empty-messages">
             <p>No messages yet</p>
-            <p className="hint">Say hi to your chat partner! 👋</p>
+            <p className="hint">Start a conversation with your partner</p>
           </div>
         )}
 

@@ -64,7 +64,9 @@ function MainApp() {
         token: localStorage.getItem('token')
       },
       // Add forceNew to handle reconnections better
-      forceNew: false
+      forceNew: false,
+      // Ensure proper connection
+      autoConnect: true
     })
 
     newSocket.on('connect', () => {
@@ -85,7 +87,11 @@ function MainApp() {
       if (error.message.includes('timeout') && SOCKET_URL.includes('render.com')) {
         console.log('⏳ Render.com cold start detected - retrying...')
       } else if (SOCKET_URL.includes('localhost')) {
-        alert('⚠️ Backend URL not configured! Please set VITE_SOCKET_URL environment variable.')
+        console.error('⚠️ Backend connection failed! Troubleshooting:')
+        console.error('1. Make sure backend server is running: cd backend && npm run dev')
+        console.error('2. Check backend .env has: CORS_ORIGIN=http://localhost:5173')
+        console.error('3. Check frontend .env has: VITE_SOCKET_URL=http://localhost:5000')
+        console.error('4. Restart both frontend and backend after updating .env files')
       }
     })
     
@@ -170,7 +176,21 @@ function MainApp() {
   if (loading) {
     return (
       <div className="loading-screen">
-        <h2>Loading...</h2>
+        <div className="loading-animation">
+          <div className="loader-container">
+            <div className="loader-circle loader-circle-1"></div>
+            <div className="loader-circle loader-circle-2"></div>
+            <div className="loader-circle loader-circle-3"></div>
+            <div className="loader-circle loader-circle-4"></div>
+          </div>
+          <div className="loading-wave">
+            <div className="wave-bar"></div>
+            <div className="wave-bar"></div>
+            <div className="wave-bar"></div>
+            <div className="wave-bar"></div>
+            <div className="wave-bar"></div>
+          </div>
+        </div>
       </div>
     )
   }

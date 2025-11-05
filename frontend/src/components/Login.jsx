@@ -88,8 +88,8 @@ function Login({ onSwitchToSignup, onClose }) {
         
         <div className="auth-header">
           <User size={40} className="auth-icon" />
-          <h2>Welcome Back!</h2>
-          <p>Login to continue chatting</p>
+          <h2>Welcome Back</h2>
+          <p>Sign in to your account</p>
         </div>
 
         {error && (
