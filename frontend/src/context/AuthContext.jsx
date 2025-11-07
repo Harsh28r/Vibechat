@@ -8,6 +8,7 @@ import {
   updateProfile as firebaseUpdateProfile
 } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider } from '../config/firebase';
+import { syncUserWithBackend } from '../utils/syncUserWithBackend';
 
 const AuthContext = createContext();
 
@@ -35,8 +36,22 @@ export const AuthProvider = ({ children }) => {
           username: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
           avatar: firebaseUser.photoURL
         };
-        
-        setUser(userData);
+
+        let backendSync = null;
+        try {
+          backendSync = await syncUserWithBackend(firebaseUser);
+          if (backendSync?.token) {
+            localStorage.setItem('token', backendSync.token);
+          }
+        } catch (error) {
+          console.error('Error syncing user with backend:', error);
+        }
+
+        setUser({
+          ...userData,
+          backendId: backendSync?.user?.id || null,
+          token: backendSync?.token || localStorage.getItem('token') || null
+        });
         
         // Store Firebase ID token for backend authentication
         try {
@@ -49,6 +64,7 @@ export const AuthProvider = ({ children }) => {
         // User is signed out
         setUser(null);
         localStorage.removeItem('firebaseToken');
+        localStorage.removeItem('token');
       }
       setLoading(false);
     });
@@ -66,6 +82,8 @@ export const AuthProvider = ({ children }) => {
       await firebaseUpdateProfile(result.user, {
         displayName: username
       });
+
+      await refreshBackendToken();
       
       return { success: true };
     } catch (error) {
@@ -82,6 +100,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const { email, password } = credentials;
       await signInWithEmailAndPassword(auth, email, password);
+      await refreshBackendToken();
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
@@ -96,6 +115,7 @@ export const AuthProvider = ({ children }) => {
   const loginWithGoogle = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
+      await refreshBackendToken();
       return { success: true };
     } catch (error) {
       console.error('Google login error:', error);
@@ -110,6 +130,7 @@ export const AuthProvider = ({ children }) => {
   const loginWithFacebook = async () => {
     try {
       await signInWithPopup(auth, facebookProvider);
+      await refreshBackendToken();
       return { success: true };
     } catch (error) {
       console.error('Facebook login error:', error);
@@ -127,7 +148,9 @@ export const AuthProvider = ({ children }) => {
       uid: 'guest-' + Date.now(),
       username: 'Guest',
       displayName: 'Guest User',
-      isGuest: true
+      isGuest: true,
+      token: null,
+      backendId: null
     });
     return { success: true };
   };
@@ -140,6 +163,29 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const refreshBackendToken = async () => {
+    try {
+      if (!auth.currentUser) return null;
+      const data = await syncUserWithBackend(auth.currentUser);
+      if (data?.token) {
+        localStorage.setItem('token', data.token);
+        setUser(prev => prev ? {
+          ...prev,
+          token: data.token,
+          backendId: data.user?.id || prev.backendId || null,
+          email: data.user?.email || prev.email,
+          username: data.user?.username || prev.username,
+          displayName: data.user?.displayName || prev.displayName,
+          avatar: data.user?.avatar ?? prev.avatar
+        } : prev);
+        return data.token;
+      }
+    } catch (error) {
+      console.error('Failed to refresh backend token:', error);
+    }
+    return null;
   };
 
   // Update Profile
@@ -171,7 +217,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    token: user?.uid, // Use Firebase UID as token
+    token: user?.token || null,
     loading,
     signup,
     login,
@@ -180,7 +226,8 @@ export const AuthProvider = ({ children }) => {
     loginAsGuest,
     logout,
     updateProfile,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    refreshBackendToken
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

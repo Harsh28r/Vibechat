@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import './App.css'
@@ -13,13 +13,16 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
 
 function MainApp() {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, token } = useAuth()
   const [isStarted, setIsStarted] = useState(false)
   const [socket, setSocket] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
+  const [banInfo, setBanInfo] = useState(null)
+  const [banStatusLoading, setBanStatusLoading] = useState(false)
+  const [banStatusError, setBanStatusError] = useState(null)
   const [preferences, setPreferences] = useState({
     myGender: 'other',
     gender: 'any',
@@ -132,24 +135,82 @@ function MainApp() {
 
   // Reconnect socket with new token after authentication
   useEffect(() => {
-    if (isAuthenticated && socket) {
-      const token = localStorage.getItem('token')
-      console.log('🔐 Authenticated! Updating socket with token...')
-      
-      // Update socket auth
-      socket.auth = { token }
-      
-      // Reconnect if needed
-      if (!socket.connected) {
-        socket.connect()
+    if (socket) {
+      if (token) {
+        console.log('🔐 Authenticated! Updating socket with token...')
+        socket.auth = { token }
+        if (!socket.connected) {
+          socket.connect()
+        }
+      } else {
+        socket.auth = { token: null }
       }
     }
-  }, [isAuthenticated, socket])
+  }, [token, socket])
 
-  const handleStart = () => {
+  const fetchBanStatus = useCallback(async (force = false) => {
+    if (!token) {
+      setBanInfo(null)
+      return null
+    }
+
+    if (banStatusLoading && !force) {
+      return banInfo
+    }
+
+    setBanStatusLoading(true)
+    setBanStatusError(null)
+
+    try {
+      const response = await fetch(`${SOCKET_URL}/api/moderation/ban-status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (data?.success) {
+        setBanInfo(data.data)
+        return data.data
+      }
+
+      setBanInfo(null)
+      return null
+    } catch (error) {
+      console.error('Failed to fetch ban status:', error)
+      setBanStatusError('Unable to verify moderation status right now.')
+      return null
+    } finally {
+      setBanStatusLoading(false)
+    }
+  }, [token, banStatusLoading, banInfo])
+
+  useEffect(() => {
+    if (token) {
+      fetchBanStatus(true)
+    } else {
+      setBanInfo(null)
+    }
+  }, [token, fetchBanStatus])
+
+  const handleStart = async () => {
     if (!isAuthenticated) {
       setShowLogin(true)
       return
+    }
+
+    if (token) {
+      const latestBan = await fetchBanStatus(true)
+      if (latestBan?.isBanned) {
+        const until = latestBan.bannedUntil ? new Date(latestBan.bannedUntil).toLocaleString() : 'soon'
+        alert(`Your account is temporarily suspended. Ban lifts ${until}.`)
+        setIsStarted(false)
+        return
+      }
     }
     
     if (isConnected && socket) {
@@ -209,9 +270,12 @@ function MainApp() {
             isAuthenticated={isAuthenticated}
             onShowLogin={() => setShowLogin(true)}
             onShowSignup={() => setShowSignup(true)}
+            banInfo={banInfo}
+            isCheckingBan={banStatusLoading}
+            banStatusError={banStatusError}
           />
         ) : (
-          <VideoChat preferences={preferences} />
+          <VideoChat preferences={preferences} initialBanInfo={banInfo} />
         )}
 
         {showLogin && (

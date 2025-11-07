@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSocket } from '../context/SocketContext'
-import { SkipForward, X, Mic, MicOff, Video as VideoIcon, VideoOff, Send, MapPin } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { SkipForward, X, Mic, MicOff, Video as VideoIcon, VideoOff, MapPin, Flag, AlertOctagon, Clock } from 'lucide-react'
 import './VideoChat.css'
 import ChatBox from './ChatBox'
 
@@ -43,6 +44,17 @@ const COUNTRIES = [
   { code: 'KE', name: 'Kenya', flag: '🇰🇪' }
 ]
 
+const API_BASE = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
+
+const REPORT_REASONS = [
+  'Inappropriate behavior',
+  'Harassment or bullying',
+  'Explicit content',
+  'Spam or scam',
+  'Impersonation',
+  'Other'
+]
+
 // Country code to flag emoji mapping
 const getCountryFlag = (countryCode) => {
   if (!countryCode || countryCode === 'ANY' || countryCode === 'Unknown') return '🌍'
@@ -64,8 +76,18 @@ const getCountryFlag = (countryCode) => {
   return countryFlags[countryCode.toUpperCase()] || '🌍'
 }
 
-function VideoChat({ preferences }) {
+const formatBanDate = (input) => {
+  if (!input) return null
+  const date = typeof input === 'string' ? new Date(input) : input
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return null
+  }
+  return date.toLocaleString()
+}
+
+function VideoChat({ preferences, initialBanInfo = null }) {
   const socket = useSocket()
+  const { user, refreshBackendToken } = useAuth()
   const [status, setStatus] = useState('searching') // searching, connected, disconnected
   const [partnerId, setPartnerId] = useState(null)
   const [partnerCountry, setPartnerCountry] = useState(null)
@@ -74,6 +96,13 @@ function VideoChat({ preferences }) {
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [partnerTyping, setPartnerTyping] = useState(false)
   const [showVideoWarning, setShowVideoWarning] = useState(false)
+  const [banInfo, setBanInfo] = useState(initialBanInfo)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState(REPORT_REASONS[0])
+  const [reportDetails, setReportDetails] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportFeedback, setReportFeedback] = useState(null)
+  const [reportError, setReportError] = useState(null)
   
   // Country filter state
   const [selectedCountry, setSelectedCountry] = useState(preferences?.country || 'ANY')
@@ -96,6 +125,70 @@ function VideoChat({ preferences }) {
   const peerConnectionRef = useRef(null)
   const localStreamRef = useRef(null)
   const partnerIdRef = useRef(null)
+  const banInfoRef = useRef(null)
+  const tokenRefreshInFlightRef = useRef(false)
+
+  useEffect(() => {
+    banInfoRef.current = banInfo
+  }, [banInfo])
+
+  useEffect(() => {
+    if (initialBanInfo === null) {
+      setBanInfo(null)
+      setStatus(prev => (prev === 'banned' ? 'searching' : prev))
+    } else if (initialBanInfo) {
+      setBanInfo(initialBanInfo)
+      if (initialBanInfo.isBanned) {
+        setStatus('banned')
+      } else {
+        setStatus(prev => (prev === 'banned' ? 'searching' : prev))
+      }
+    }
+  }, [initialBanInfo])
+
+  useEffect(() => {
+    if (!banInfo?.isBanned && status === 'banned') {
+      setStatus('searching')
+    }
+  }, [banInfo, status])
+
+  useEffect(() => {
+    if (user && !user.token && typeof refreshBackendToken === 'function' && !tokenRefreshInFlightRef.current) {
+      tokenRefreshInFlightRef.current = true
+      refreshBackendToken().finally(() => {
+        tokenRefreshInFlightRef.current = false
+      })
+    }
+  }, [user, refreshBackendToken])
+
+  useEffect(() => {
+    const fetchBanStatus = async () => {
+      const authToken = user?.token || localStorage.getItem('token')
+      if (!authToken) return
+
+      try {
+        const response = await fetch(`${API_BASE}/api/moderation/ban-status`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        })
+
+        if (!response.ok) return
+
+        const data = await response.json()
+        if (data?.success && data.data?.isBanned) {
+          setBanInfo(data.data)
+          setStatus('banned')
+        } else {
+          setBanInfo(null)
+        }
+      } catch (error) {
+        console.error('Failed to fetch ban status:', error)
+      }
+    }
+
+    fetchBanStatus()
+  }, [user?.token])
 
   // ICE servers for WebRTC (using free STUN servers)
   const iceServers = {
@@ -110,6 +203,12 @@ function VideoChat({ preferences }) {
   useEffect(() => {
     if (!socket) {
       console.log('⚠️ Socket not ready yet')
+      return
+    }
+
+    if (banInfo?.isBanned) {
+      console.log('🚫 User is banned. Skipping media initialization.')
+      setStatus('banned')
       return
     }
 
@@ -235,7 +334,8 @@ function VideoChat({ preferences }) {
           preferences: {
             gender: preferences?.gender || 'any',
             country: countryToUse
-          }
+          },
+          userId: user?.backendId || null
         })
         console.log('✅ start-search event emitted with country:', countryToUse)
       } catch (error) {
@@ -271,7 +371,7 @@ function VideoChat({ preferences }) {
         peerConnectionRef.current.close()
       }
     }
-  }, [socket])
+  }, [socket, banInfo?.isBanned, user?.backendId])
 
   // Socket event listeners
   useEffect(() => {
@@ -316,6 +416,8 @@ function VideoChat({ preferences }) {
       // Clear chat for new person
       setMessages([])
       console.log('💬 Chat cleared for new match')
+      setReportFeedback(null)
+      setReportError(null)
       
       // Determine who should be the offerer (alphabetically earlier socket ID)
       const shouldOffer = socket.id < newPartnerId
@@ -446,6 +548,9 @@ function VideoChat({ preferences }) {
       handlePartnerDisconnected()
       
       // Auto-search for new partner after 1 second
+      if (banInfoRef.current?.isBanned) {
+        return
+      }
       setTimeout(() => {
         const countryToUse = selectedCountry || preferences?.country || 'ANY'
         socket.emit('start-search', {
@@ -461,6 +566,31 @@ function VideoChat({ preferences }) {
       }, 1000)
     })
 
+    socket.on('banned', ({ message, bannedUntil, banReason }) => {
+      console.warn('🚫 Banned from server:', message)
+      const info = {
+        isBanned: true,
+        message: message || 'Your account is temporarily suspended.',
+        bannedUntil: bannedUntil ? new Date(bannedUntil) : null,
+        banReason: banReason || 'Community guidelines violation'
+      }
+      setBanInfo(info)
+      setStatus('banned')
+      setShowReportModal(false)
+      setReportSubmitting(false)
+      partnerIdRef.current = null
+      setPartnerId(null)
+
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close()
+        peerConnectionRef.current = null
+      }
+
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null
+      }
+    })
+
     return () => {
       socket.off('searching')
       socket.off('match-found')
@@ -470,6 +600,7 @@ function VideoChat({ preferences }) {
       socket.off('chat-message')
       socket.off('partner-typing')
       socket.off('partner-disconnected')
+      socket.off('banned')
     }
   }, [socket])
 
@@ -736,6 +867,7 @@ function VideoChat({ preferences }) {
     setStatus('disconnected')
     setPartnerId(null)
     partnerIdRef.current = null
+    setReportFeedback(null)
     
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close()
@@ -749,17 +881,90 @@ function VideoChat({ preferences }) {
 
   // Skip current partner
   const handleSkip = () => {
+    if (banInfoRef.current?.isBanned) return
     socket.emit('skip-partner')
     handlePartnerDisconnected()
   }
 
   // Stop chat and return to welcome
   const handleStop = () => {
+    if (banInfoRef.current?.isBanned) return
     socket.emit('stop-search')
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop())
     }
     window.location.reload()
+  }
+
+  const openReportModal = async () => {
+    setReportFeedback(null)
+    setReportError(null)
+    setShowReportModal(true)
+    if (typeof refreshBackendToken === 'function') {
+      const existingToken = user?.token || localStorage.getItem('token')
+      if (!existingToken) {
+        await refreshBackendToken()
+      }
+    }
+  }
+
+  const closeReportModal = () => {
+    setShowReportModal(false)
+    setReportSubmitting(false)
+  }
+
+  const handleReportSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!partnerIdRef.current) {
+      setReportError('Partner disconnected. Try reporting from your recent history if needed.')
+      return
+    }
+
+    let authToken = user?.token || localStorage.getItem('token')
+
+    if (!authToken && typeof refreshBackendToken === 'function') {
+      authToken = await refreshBackendToken()
+    }
+
+    if (!authToken) {
+      setReportError('We could not verify your login. Please refresh the page and try again.')
+      return
+    }
+
+    setReportSubmitting(true)
+    setReportFeedback(null)
+    setReportError(null)
+
+    try {
+      const response = await fetch(`${API_BASE}/api/moderation/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          reportedSocketId: partnerIdRef.current,
+          reason: reportReason,
+          details: reportDetails.trim() || undefined
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || 'Failed to send report. Please try again later.')
+      }
+
+      setReportFeedback(result.message || 'Report submitted. Thanks for helping keep the community safe!')
+      setReportDetails('')
+      setShowReportModal(false)
+    } catch (error) {
+      console.error('Failed to submit report:', error)
+      setReportError(error.message || 'Unexpected error while submitting report.')
+    } finally {
+      setReportSubmitting(false)
+    }
   }
 
   // Toggle mute
@@ -1278,6 +1483,22 @@ function VideoChat({ preferences }) {
                 <p>Searching for a new partner...</p>
               </div>
             )}
+            {status === 'banned' && (
+              <div className="status-overlay banned">
+                <AlertOctagon size={48} />
+                <h2>Account Suspended</h2>
+                <p>{banInfo?.message || 'You have been temporarily banned for violating community guidelines.'}</p>
+                {banInfo?.banReason && (
+                  <p className="ban-reason">Reason: {banInfo.banReason}</p>
+                )}
+                {banInfo?.bannedUntil && (
+                  <div className="ban-timer">
+                    <Clock size={18} />
+                    <span>Ban lifts {formatBanDate(banInfo.bannedUntil)}</span>
+                  </div>
+                )}
+              </div>
+            )}
             {status === 'connected' && (
               <div className="connection-indicator">
                 <div className="pulse-dot"></div>
@@ -1558,6 +1779,15 @@ function VideoChat({ preferences }) {
             )}
           </div>
 
+          <button
+            className="control-btn report-btn"
+            onClick={openReportModal}
+            disabled={status !== 'connected' || !partnerId}
+            title="Report inappropriate behavior"
+          >
+            <Flag size={22} />
+          </button>
+
           <button 
             className="control-btn skip-btn"
             onClick={handleSkip}
@@ -1575,6 +1805,13 @@ function VideoChat({ preferences }) {
             <X size={24} />
           </button>
         </div>
+
+        {reportFeedback && (
+          <div className="report-feedback">
+            <Flag size={16} />
+            <span>{reportFeedback}</span>
+          </div>
+        )}
       </div>
 
       {/* Chat box */}
@@ -1585,6 +1822,53 @@ function VideoChat({ preferences }) {
         partnerTyping={partnerTyping}
         isConnected={status === 'connected'}
       />
+
+      {showReportModal && (
+        <div className="report-modal-overlay" onClick={closeReportModal}>
+          <div className="report-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="report-close" onClick={closeReportModal}>
+              <X size={20} />
+            </button>
+            <div className="report-header">
+              <AlertOctagon size={32} />
+              <h3>Report Partner</h3>
+              <p>Flag inappropriate behavior. Reports remain anonymous.</p>
+            </div>
+
+            {reportError && (
+              <div className="report-error">{reportError}</div>
+            )}
+
+            <form className="report-form" onSubmit={handleReportSubmit}>
+              <label htmlFor="report-reason">Reason</label>
+              <select
+                id="report-reason"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+              >
+                {REPORT_REASONS.map((reasonOption) => (
+                  <option key={reasonOption} value={reasonOption}>
+                    {reasonOption}
+                  </option>
+                ))}
+              </select>
+
+              <label htmlFor="report-details">Details (optional)</label>
+              <textarea
+                id="report-details"
+                rows={4}
+                placeholder="Share what happened. Details help our moderation team."
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+              />
+
+              <button type="submit" className="report-submit" disabled={reportSubmitting}>
+                {reportSubmitting ? 'Submitting...' : 'Submit Report'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

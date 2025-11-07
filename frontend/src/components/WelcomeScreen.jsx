@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Video, Users, Shield, Zap, Settings, Moon, Sun, LogIn, UserPlus, LogOut } from 'lucide-react'
+import { Video, Users, Shield, Zap, Settings, Moon, Sun, LogIn, UserPlus, LogOut, AlertTriangle, Clock } from 'lucide-react'
 import './WelcomeScreen.css'
 import Preferences from './Preferences'
 import { useAuth } from '../context/AuthContext'
 
-function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange, darkMode, onToggleDarkMode, isAuthenticated, onShowLogin, onShowSignup }) {
+function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange, darkMode, onToggleDarkMode, isAuthenticated, onShowLogin, onShowSignup, banInfo, isCheckingBan, banStatusError }) {
   const [showPreferences, setShowPreferences] = useState(false)
   const { user, logout } = useAuth()
   
@@ -146,12 +146,43 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
         </button>
 
         <button 
-          className={`start-btn ${!isConnected ? 'disabled' : ''}`}
+          className={`start-btn ${(!isConnected || banInfo?.isBanned) ? 'disabled' : ''}`}
           onClick={onStart}
-          disabled={!isConnected}
+          disabled={!isConnected || banInfo?.isBanned}
         >
-          {isConnected ? 'Start Video Chat' : 'Connecting...'}
+          {!isConnected ? 'Connecting...' : banInfo?.isBanned ? 'Account Suspended' : 'Start Video Chat'}
         </button>
+
+        {isCheckingBan && (
+          <div className="ban-status-message checking">
+            <Clock size={16} />
+            <span>Verifying account safety status…</span>
+          </div>
+        )}
+
+        {banStatusError && (
+          <div className="ban-status-message error">
+            <AlertTriangle size={16} />
+            <span>{banStatusError}</span>
+          </div>
+        )}
+
+        {banInfo?.isBanned && (
+          <div className="ban-alert">
+            <AlertTriangle size={18} />
+            <div className="ban-alert-content">
+              <strong>Account Suspended</strong>
+              <span>
+                {banInfo.banReason || 'You have been temporarily suspended for violating community guidelines.'}
+              </span>
+              {banInfo.bannedUntil && (
+                <span className="ban-alert-timer">
+                  Ban lifts {new Date(banInfo.bannedUntil).toLocaleString()}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Connection Status - Only show for authenticated users */}
         {isAuthenticated && (

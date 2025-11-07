@@ -472,6 +472,69 @@
   transform: scale(1.1);
 }
 
+.ban-status-message {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.ban-status-message svg {
+  flex-shrink: 0;
+}
+
+.ban-status-message.checking {
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.ban-status-message.error {
+  background: rgba(248, 113, 113, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.ban-alert {
+  margin-top: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(127, 29, 29, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #7f1d1d;
+}
+
+.ban-alert svg {
+  margin-top: 2px;
+}
+
+.ban-alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ban-alert-content strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.ban-alert-content span {
+  font-size: 0.9rem;
+}
+
+.ban-alert-timer {
+  color: rgba(127, 29, 29, 0.9);
+  font-weight: 600;
+}
+
 .welcome-content {
   flex: 1;
   background: transparent;
