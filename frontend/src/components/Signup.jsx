@@ -5,7 +5,7 @@ import { FcGoogle } from 'react-icons/fc';
 import './Login.css';
 
 function Signup({ onSwitchToLogin, onClose }) {
-  const { signup, loginAsGuest, loginWithGoogle, loginWithFacebook } = useAuth();
+  const { signup, loginWithGoogle, loginWithFacebook } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -61,17 +61,6 @@ function Signup({ onSwitchToLogin, onClose }) {
       setError(result.message);
     }
     
-    setLoading(false);
-  };
-
-  const handleGuestLogin = async () => {
-    setLoading(true);
-    const result = await loginAsGuest();
-    if (result.success) {
-      onClose();
-    } else {
-      setError(result.message);
-    }
     setLoading(false);
   };
 
@@ -208,12 +197,6 @@ function Signup({ onSwitchToLogin, onClose }) {
           <button className="auth-btn facebook" onClick={handleFacebookLogin} disabled={loading}>
             <Facebook size={20} />
             Sign up with Facebook
-          </button>
-        </div>
-
-        <div className="guest-section">
-          <button className="auth-btn guest" onClick={handleGuestLogin} disabled={loading}>
-            Continue as Guest
           </button>
         </div>
 
