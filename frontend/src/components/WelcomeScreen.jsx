@@ -96,8 +96,8 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
             </div>
           </div>
           <div className="brand-name">
-            <h1>GenauraTV</h1>
-            <span className="brand-subtitle">Professional Video Communication Platform</span>
+            <h1>Camify</h1>
+            <span className="brand-subtitle">Spontaneous Video Chats, Instantly</span>
           </div>
         </div>
         
