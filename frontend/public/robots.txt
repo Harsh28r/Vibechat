@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Point crawlers to the XML sitemap for faster discovery
+Sitemap: https://www.camify.fun/sitemap.xml
+
+# Optional: declare the preferred host (replace with live domain if needed)
+Host: www.camify.fun
+

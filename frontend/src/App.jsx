@@ -7,6 +7,7 @@ import VideoChat from './components/VideoChat'
 import Login from './components/Login'
 import Signup from './components/Signup'
 import AuthSuccess from './components/AuthSuccess'
+import Privacy from './components/Privacy'
 import { SocketProvider } from './context/SocketContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
@@ -302,6 +303,7 @@ function App() {
         <Routes>
           <Route path="/" element={<MainApp />} />
           <Route path="/auth/success" element={<AuthSuccess />} />
+          <Route path="/privacy" element={<Privacy />} />
         </Routes>
       </AuthProvider>
     </Router>
