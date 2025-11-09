@@ -137,13 +137,13 @@ function WelcomeScreen({ onStart, isConnected, preferences, onPreferencesChange,
           </div>
         </div>
 
-        <button 
+        {/* <button 
           className="preferences-btn"
           onClick={() => setShowPreferences(true)}
         >
           <Settings size={16} />
           Set Preferences
-        </button>
+        </button> */}
 
         <button 
           className={`start-btn ${(!isConnected || banInfo?.isBanned) ? 'disabled' : ''}`}
