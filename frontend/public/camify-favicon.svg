@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="camify-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7F5AF0"/>
+      <stop offset="100%" stop-color="#2CB1BC"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#camify-gradient)"/>
+  <path d="M46 26l8-6v24l-8-6v-12z" fill="#0F172A" opacity="0.85"/>
+  <rect x="12" y="18" width="28" height="28" rx="6" fill="#0F172A" opacity="0.85"/>
+  <circle cx="26" cy="32" r="9" fill="#F4F4F5"/>
+  <circle cx="26" cy="32" r="5" fill="#0F172A"/>
+  <circle cx="44" cy="24" r="3" fill="#F4F4F5"/>
+</svg>
+

@@ -1779,14 +1779,14 @@ function VideoChat({ preferences, initialBanInfo = null }) {
             )}
           </div>
 
-          <button
+          {/* <button
             className="control-btn report-btn"
             onClick={openReportModal}
             disabled={status !== 'connected' || !partnerId}
             title="Report inappropriate behavior"
           >
             <Flag size={22} />
-          </button>
+          </button> */}
 
           <button 
             className="control-btn skip-btn"
