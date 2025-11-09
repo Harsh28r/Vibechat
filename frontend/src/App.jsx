@@ -244,13 +244,6 @@ function MainApp() {
             <div className="loader-circle loader-circle-3"></div>
             <div className="loader-circle loader-circle-4"></div>
           </div>
-          <div className="loading-wave">
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-            <div className="wave-bar"></div>
-          </div>
         </div>
       </div>
     )
