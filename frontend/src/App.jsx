@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { io } from 'socket.io-client'
+import { Analytics } from '@vercel/analytics/react'
 import './App.css'
 import WelcomeScreen from './components/WelcomeScreen'
 import VideoChat from './components/VideoChat'
@@ -305,6 +306,7 @@ function App() {
           <Route path="/auth/success" element={<AuthSuccess />} />
           <Route path="/privacy" element={<Privacy />} />
         </Routes>
+        <Analytics />
       </AuthProvider>
     </Router>
   )
